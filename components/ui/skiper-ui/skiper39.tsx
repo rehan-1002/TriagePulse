@@ -241,10 +241,10 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7 }: CrowdCanvasProps) => {
 
     const resize = () => {
       if (!canvas) return;
-      stage.width = canvas.clientWidth;
-      stage.height = canvas.clientHeight;
-      canvas.width = stage.width * devicePixelRatio;
-      canvas.height = stage.height * devicePixelRatio;
+      stage.width = window.innerWidth;
+      stage.height = window.innerHeight;
+      canvas.width = stage.width * (window.devicePixelRatio || 1);
+      canvas.height = stage.height * (window.devicePixelRatio || 1);
 
       crowd.forEach((peep) => {
         peep.walk.kill();
@@ -278,7 +278,7 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7 }: CrowdCanvasProps) => {
     };
   }, []);
   return (
-    <canvas ref={canvasRef} className="absolute bottom-0 h-[90vh] w-full" />
+    <canvas ref={canvasRef} className="absolute inset-0 h-full w-full pointer-events-none" />
   );
 };
 
