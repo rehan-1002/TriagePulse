@@ -75,16 +75,27 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 
 /* =========================================================================
    CROWD CANVAS THEME RESPONSIVENESS
-   - Light mode: Pure white background, pure black outlines (no filter)
-   - Dark mode: Pure black background, pure white outlines (invert(1))
+   - Light mode: Pure black outlines on white background (no filter)
+   - Dark mode: Pure white outlines on black background (invert(1))
    ========================================================================= */
-.crowd-canvas-wrapper {
-  filter: none;
+.crowd-canvas-wrapper,
+.crowd-canvas-wrapper canvas,
+canvas {
   transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: filter;
 }
 
+html.dark canvas,
 html.dark .crowd-canvas-wrapper,
-.dark .crowd-canvas-wrapper {
-  filter: invert(1);
+html.dark .crowd-canvas-wrapper canvas,
+.dark canvas,
+.dark .crowd-canvas-wrapper,
+.dark .crowd-canvas-wrapper canvas {
+  filter: invert(1) !important;
+}
+
+html.light canvas,
+html.light .crowd-canvas-wrapper,
+html.light .crowd-canvas-wrapper canvas {
+  filter: none !important;
 }

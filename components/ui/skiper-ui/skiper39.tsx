@@ -286,7 +286,10 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7, className }: CrowdCanvasProps) 
     };
   }, [src, rows, cols]);
   return (
-    <canvas ref={canvasRef} className={className || "absolute bottom-0 h-[90vh] w-full"} />
+    <canvas
+      ref={canvasRef}
+      className={`absolute bottom-0 h-[90vh] w-full dark:invert transition-[filter] duration-300 ${className || ""}`}
+    />
   );
 };
 
