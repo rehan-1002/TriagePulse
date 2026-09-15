@@ -36,6 +36,35 @@ model Counter {
   tokens                Token[]
 }
 
+enum TriageLevel {
+  LEVEL_1_RESUSCITATION // Immediate life-threat; zero wait tolerance
+  LEVEL_2_EMERGENT      // High risk, severe pain, acute altered mental state
+  LEVEL_3_URGENT        // Clinically stable; requires 2+ diagnostic/care resources
+  LEVEL_4_LESS_URGENT   // Stable; requires 1 resource (e.g., standard X-ray or suture)
+  LEVEL_5_NON_URGENT    // Routine consult, medication refill, administrative check
+}
+
+enum CareStage {
+  TRIAGE_INTAKE
+  DOCTOR_CONSULTATION
+  DIAGNOSTICS_LAB
+  DIAGNOSTICS_IMAGING
+  PHARMACY_DISPENSING
+  COMPLETED
+  DISMISSED
+}
+
+enum DepartmentType {
+  TRIAGE_DESK
+  EMERGENCY_ROOM
+  GENERAL_OPD
+  CARDIOLOGY
+  ORTHOPEDICS
+  PATHOLOGY_LAB
+  RADIOLOGY_SCAN
+  CENTRAL_PHARMACY
+}
+
 model Token {
   id               String            @id @default(cuid())
   displayNumber    String
@@ -48,6 +77,15 @@ model Token {
   status           String            @default("WAITING") // WAITING, CALLED, SERVING, COMPLETED, CANCELLED, NO_SHOW
   position         Int               @default(0)
   priority         String            @default("STANDARD") // STANDARD, EMERGENCY
+  triageLevel      TriageLevel       @default(LEVEL_5_NON_URGENT)
+  chiefComplaint   String?
+  vitalSigns       Json?
+  riskFlags        String[]          @default([])
+  currentStage     CareStage         @default(TRIAGE_INTAKE)
+  targetDepartment DepartmentType    @default(GENERAL_OPD)
+  lastVitalsCheckAt DateTime         @default(now())
+  isDeteriorating  Boolean           @default(false)
+  starvationAlert  Boolean           @default(false)
   counterId        String?
   counter          Counter?          @relation(fields: [counterId], references: [id], onDelete: SetNull)
   createdAt        DateTime          @default(now())
@@ -59,6 +97,8 @@ model Token {
   events           TokenEvent[]
 
   @@index([queueId, status, position])
+  @@index([queueId, status, triageLevel])
+  @@index([isDeteriorating, starvationAlert])
   @@index([visitorSessionId])
 }
 

@@ -31,6 +31,8 @@ export async function GET(
       position: token.position,
       estimatedServiceTimeMins: token.queue.estimatedServiceTime,
       activeCounterCount: activeCounters,
+      triageLevel: token.triageLevel,
+      isDeteriorating: token.isDeteriorating,
     });
 
     const peopleAhead = Math.max(0, token.position - 1);

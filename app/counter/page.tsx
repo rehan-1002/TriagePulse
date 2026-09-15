@@ -20,6 +20,8 @@ import {
   Filter,
   ArrowUpRight,
   Settings,
+  Activity,
+  Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
@@ -40,6 +42,7 @@ interface CounterDetail {
     id: string;
     name: string;
     code: string;
+    department?: string;
   } | null;
 }
 
@@ -48,6 +51,13 @@ interface WaitingToken {
   displayNumber: string;
   position: number;
   priority: string;
+  triageLevel?: string;
+  chiefComplaint?: string;
+  vitalSigns?: any;
+  riskFlags?: string[];
+  isDeteriorating?: boolean;
+  starvationAlert?: boolean;
+  currentStage?: string;
   visitorName: string;
   purpose: string;
   createdAt: string;
@@ -55,6 +65,61 @@ interface WaitingToken {
   queueCode?: string;
   queueName?: string;
 }
+
+export const getStationInfo = (counterNumber: number, fallbackName: string) => {
+  switch (counterNumber) {
+    case 1:
+      return { title: "Station 1: Triage Desk", role: "Nurse Intake & Vitals Assessment" };
+    case 2:
+      return { title: "Station 2: Doctor Cabin 1", role: "Acute Physician Consultation" };
+    case 3:
+      return { title: "Station 3: Doctor Cabin 2", role: "General Clinical Consultation" };
+    case 4:
+      return { title: "Station 4: Phlebotomy Lab", role: "Diagnostic Pathology & Samples" };
+    case 5:
+      return { title: "Station 5: Radiology Scan", role: "X-Ray & Diagnostic Imaging" };
+    case 6:
+      return { title: "Station 6: Outpatient Pharmacy", role: "Prescription Dispense & Counselling" };
+    default:
+      return { title: fallbackName, role: "Clinical Workstation" };
+  }
+};
+
+export const renderEsiBadge = (level?: string) => {
+  switch (level) {
+    case "LEVEL_1_RESUSCITATION":
+      return (
+        <span className="px-2 py-0.5 rounded border border-red-700 bg-red-950/80 text-red-200 text-[10px] font-mono font-bold">
+          ESI 1 • RESUSCITATION
+        </span>
+      );
+    case "LEVEL_2_EMERGENT":
+      return (
+        <span className="px-2 py-0.5 rounded border border-rose-700 bg-rose-950/80 text-rose-200 text-[10px] font-mono font-bold">
+          ESI 2 • EMERGENT
+        </span>
+      );
+    case "LEVEL_3_URGENT":
+      return (
+        <span className="px-2 py-0.5 rounded border border-amber-700 bg-amber-950/80 text-amber-200 text-[10px] font-mono font-bold">
+          ESI 3 • URGENT
+        </span>
+      );
+    case "LEVEL_4_LESS_URGENT":
+      return (
+        <span className="px-2 py-0.5 rounded border border-blue-700 bg-blue-950/80 text-blue-200 text-[10px] font-mono font-bold">
+          ESI 4 • LESS URGENT
+        </span>
+      );
+    case "LEVEL_5_NON_URGENT":
+    default:
+      return (
+        <span className="px-2 py-0.5 rounded border border-zinc-700 bg-zinc-900 text-zinc-300 text-[10px] font-mono font-bold">
+          ESI 5 • NON-URGENT
+        </span>
+      );
+  }
+};
 
 export default function CounterConsolePage() {
   const [counters, setCounters] = useState<CounterDetail[]>([]);
@@ -222,7 +287,7 @@ export default function CounterConsolePage() {
 
       if (action === "CALL_NEXT") {
         if (data.emptyQueue) {
-          showNotification("No waiting visitors in this queue.", "info");
+          showNotification("No waiting patients in this queue.", "info");
         } else {
           showNotification(`Called Token ${data.token?.displayNumber} to ${currentCounter.name}`, "success");
         }
@@ -306,10 +371,10 @@ export default function CounterConsolePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
           <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-            Institutional Operations Terminal
+            Clinical Flow Operations Terminal
           </span>
           <h1 className="text-xl font-mono font-bold tracking-tight text-white mt-0.5 flex items-center gap-2">
-            Counter Workstation Console
+            Clinical Station Cockpit
             {isRefreshing && (
               <RefreshCw className="w-3.5 h-3.5 text-zinc-500 animate-spin" />
             )}
@@ -322,6 +387,7 @@ export default function CounterConsolePage() {
             {counters.map((c) => {
               const isSelected = (currentCounter?.id || selectedCounterId) === c.id;
               const hasActive = Boolean(c.currentServingTokenId);
+              const station = getStationInfo(c.number, c.name);
               return (
                 <button
                   key={c.id}
@@ -341,12 +407,7 @@ export default function CounterConsolePage() {
                         : "bg-zinc-600"
                     }`}
                   />
-                  {c.name}
-                  {c.queue?.code && (
-                    <span className={`text-[10px] px-1 rounded ${isSelected ? "bg-zinc-300 text-zinc-900" : "bg-zinc-800 text-zinc-400"}`}>
-                      {c.queue.code}
-                    </span>
-                  )}
+                  {station.title}
                 </button>
               );
             })}
@@ -388,10 +449,8 @@ export default function CounterConsolePage() {
           {/* Left Column: Active Serving Workstation Area */}
           <div className="lg:col-span-6 space-y-6">
             <Panel
-              title={currentCounter.name}
-              subtitle={`Operator: ${currentCounter.operatorName} • Assigned: ${
-                currentCounter.queue?.name || "General (All Departments)"
-              }`}
+              title={getStationInfo(currentCounter.number, currentCounter.name).title}
+              subtitle={`${getStationInfo(currentCounter.number, currentCounter.name).role} • Staff: ${currentCounter.operatorName}`}
               badge={
                 <div className="flex items-center gap-2">
                   <button
@@ -400,7 +459,7 @@ export default function CounterConsolePage() {
                       setIsAssignQueueModalOpen(true);
                     }}
                     className="p-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-[10px] font-mono flex items-center gap-1"
-                    title="Change counter assignment"
+                    title="Change station queue assignment"
                   >
                     <Settings className="w-3 h-3" /> Reassign
                   </button>
@@ -409,40 +468,78 @@ export default function CounterConsolePage() {
               }
             >
               {currentToken ? (
-                <div className="space-y-6 py-2">
-                  <div className="flex flex-col items-center justify-center text-center p-6 rounded-xl border border-emerald-900/60 bg-emerald-950/20 shadow-inner">
-                    <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold mb-1">
-                      CURRENT SERVING CALL
-                    </span>
-                    <div className="font-mono text-6xl font-extrabold tracking-wider text-white my-2">
+                <div className="space-y-4 py-1">
+                  {/* Deterioration Alert Banner */}
+                  {currentToken.isDeteriorating && (
+                    <div className="rounded-lg border-2 border-rose-600 bg-rose-950/70 p-2.5 text-xs font-mono font-bold text-rose-200 flex items-center justify-center gap-2 animate-pulse">
+                      <Activity className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                      CLINICAL REASSESSMENT REQUIRED — PATIENT REPORTED ACUTE DISTRESS
+                    </div>
+                  )}
+
+                  <div className={`flex flex-col items-center justify-center text-center p-5 rounded-xl border ${
+                    currentToken.isDeteriorating
+                      ? "border-rose-700/80 bg-rose-950/20"
+                      : "border-emerald-900/60 bg-emerald-950/20"
+                  } shadow-inner space-y-1.5`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
+                        CURRENT ACTIVE PATIENT
+                      </span>
+                      {renderEsiBadge(currentToken.triageLevel)}
+                    </div>
+
+                    <div className="font-mono text-5xl font-extrabold tracking-wider text-white py-1">
                       {currentToken.displayNumber}
                     </div>
-                    <span className="text-lg font-semibold text-zinc-100 mt-1">
-                      {currentToken.visitorName}
+
+                    <span className="text-base font-semibold text-zinc-100">
+                      {currentToken.visitorName || "Patient"}
                     </span>
-                    <span className="text-xs font-mono text-zinc-400 mt-0.5">
-                      Purpose: {currentToken.purpose}
-                    </span>
-                    <div className="mt-3 flex items-center gap-2">
-                      <StatusBadge status={currentToken.priority === "EMERGENCY" ? "EMERGENCY" : "SERVING"} />
-                      {currentToken.queue?.name && (
-                        <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-300">
-                          {currentToken.queue.name}
-                        </span>
-                      )}
+
+                    {/* Chief Medical Complaint */}
+                    <div className="text-xs font-mono text-zinc-300 max-w-sm px-2 py-1 rounded bg-zinc-900/70 border border-zinc-800">
+                      <span className="text-zinc-500 uppercase mr-1">Chief Complaint:</span>
+                      <span>{currentToken.chiefComplaint || currentToken.purpose}</span>
                     </div>
+
+                    {/* Vitals Telemetry Snapshot */}
+                    {currentToken.vitalSigns && (
+                      <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[10px] font-mono">
+                        {currentToken.vitalSigns.spo2 !== undefined && (
+                          <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-200">
+                            SpO2: <strong className={currentToken.vitalSigns.spo2 < 92 ? "text-rose-400" : "text-emerald-400"}>{currentToken.vitalSigns.spo2}%</strong>
+                          </span>
+                        )}
+                        {currentToken.vitalSigns.hr !== undefined && (
+                          <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-200">
+                            HR: <strong className="text-zinc-100">{currentToken.vitalSigns.hr} bpm</strong>
+                          </span>
+                        )}
+                        {currentToken.vitalSigns.systolicBp && currentToken.vitalSigns.diastolicBp && (
+                          <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-200">
+                            BP: <strong className="text-zinc-100">{currentToken.vitalSigns.systolicBp}/{currentToken.vitalSigns.diastolicBp}</strong>
+                          </span>
+                        )}
+                        {currentToken.vitalSigns.temp !== undefined && (
+                          <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-200">
+                            Temp: <strong className="text-zinc-100">{currentToken.vitalSigns.temp}°C</strong>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Primary Finish / Complete Serving Action */}
                   <Button
                     variant="primary"
                     size="lg"
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-sm py-4 shadow-lg shadow-emerald-950/50"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-sm py-3.5 shadow-lg shadow-emerald-950/50"
                     onClick={() => handleCounterAction("COMPLETE")}
                     isLoading={actionLoading === "COMPLETE"}
                     icon={<Check className="w-5 h-5" />}
                   >
-                    COMPLETE SERVING <span className="text-xs font-mono ml-2 opacity-80">[C]</span>
+                    DISCHARGE / COMPLETE CONSULTATION <span className="text-xs font-mono ml-2 opacity-80">[C]</span>
                   </Button>
 
                   {/* Secondary Action Controls */}
@@ -473,18 +570,71 @@ export default function CounterConsolePage() {
                       onClick={() => setIsTransferModalOpen(true)}
                       icon={<ArrowRightLeft className="w-3.5 h-3.5" />}
                     >
-                      Transfer <span className="text-[9px] text-zinc-500 ml-1 font-mono">[T]</span>
+                      Custom Transfer <span className="text-[9px] text-zinc-500 ml-1 font-mono">[T]</span>
                     </Button>
+                  </div>
+
+                  {/* Multi-Stage Clinical Transfer Handoffs */}
+                  <div className="pt-2 border-t border-zinc-800/80 space-y-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 block">
+                      Direct Clinical Handoffs (Preserves Token #{currentToken.displayNumber})
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[11px] font-mono border-zinc-800 hover:border-zinc-700 text-zinc-300 px-1"
+                        onClick={() =>
+                          handleCounterAction("TRANSFER", {
+                            targetDepartment: "PATHOLOGY_LAB",
+                            targetStage: "DIAGNOSTICS_LAB",
+                          })
+                        }
+                        isLoading={actionLoading === "TRANSFER"}
+                      >
+                        → Transfer to Lab
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[11px] font-mono border-zinc-800 hover:border-zinc-700 text-zinc-300 px-1"
+                        onClick={() =>
+                          handleCounterAction("TRANSFER", {
+                            targetDepartment: "RADIOLOGY_SCAN",
+                            targetStage: "DIAGNOSTICS_IMAGING",
+                          })
+                        }
+                        isLoading={actionLoading === "TRANSFER"}
+                      >
+                        → Transfer to Imaging
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[11px] font-mono border-zinc-800 hover:border-zinc-700 text-zinc-300 px-1"
+                        onClick={() =>
+                          handleCounterAction("TRANSFER", {
+                            targetDepartment: "CENTRAL_PHARMACY",
+                            targetStage: "PHARMACY_DISPENSING",
+                          })
+                        }
+                        isLoading={actionLoading === "TRANSFER"}
+                      >
+                        → Transfer to Pharmacy
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center p-12 text-center rounded-xl border border-dashed border-zinc-800 bg-zinc-950 space-y-3">
                   <Monitor className="w-10 h-10 text-zinc-600" />
                   <span className="text-sm font-mono uppercase font-bold text-zinc-300">
-                    Counter Ready & Available
+                    Station Ready & Available
                   </span>
                   <p className="text-xs text-zinc-500 max-w-xs">
-                    Press <strong className="text-zinc-200">CALL NEXT VISITOR</strong> to serve the next ticket in queue, or click <strong>CALL</strong> on any specific waiting visitor.
+                    Press <strong className="text-zinc-200">CALL NEXT PATIENT</strong> to intake the next patient in queue, or click <strong>CALL</strong> on any prioritized patient.
                   </p>
                 </div>
               )}
@@ -500,7 +650,7 @@ export default function CounterConsolePage() {
                   isLoading={actionLoading === "CALL_NEXT"}
                   icon={<PhoneCall className="w-5 h-5" />}
                 >
-                  CALL NEXT VISITOR{" "}
+                  CALL NEXT PATIENT{" "}
                   <span className="text-xs font-mono ml-2 opacity-75">[Enter]</span>
                 </Button>
 
@@ -540,7 +690,7 @@ export default function CounterConsolePage() {
           <div className="lg:col-span-6 space-y-6">
             <Panel
               title="Next In Queue"
-              subtitle={`${waitingTokens.length} waiting visitor(s) matching view`}
+              subtitle={`${waitingTokens.length} waiting patient(s) matching view`}
               badge={
                 <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-300">
                   {allWaitingTokens.length} TOTAL WAITING
@@ -604,9 +754,9 @@ export default function CounterConsolePage() {
                   <thead>
                     <tr className="border-b border-zinc-800 text-zinc-500 uppercase text-[10px] tracking-wider">
                       <th className="py-2.5 px-3">POS</th>
-                      <th className="py-2.5 px-3">TOKEN</th>
-                      <th className="py-2.5 px-3">VISITOR</th>
-                      <th className="py-2.5 px-3">QUEUE</th>
+                      <th className="py-2.5 px-3">PATIENT TOKEN</th>
+                      <th className="py-2.5 px-3">ACUITY & COMPLAINT</th>
+                      <th className="py-2.5 px-3">PATHWAY</th>
                       <th className="py-2.5 px-3 text-right">ACTION</th>
                     </tr>
                   </thead>
@@ -616,21 +766,40 @@ export default function CounterConsolePage() {
                         <tr
                           key={token.id}
                           className={`hover:bg-zinc-900/50 transition-colors ${
-                            token.priority === "EMERGENCY"
-                              ? "bg-red-950/30 text-red-200"
+                            token.isDeteriorating
+                              ? "bg-rose-950/40 text-rose-200"
+                              : token.starvationAlert
+                              ? "bg-amber-950/20 text-amber-200"
                               : ""
                           }`}
                         >
                           <td className="py-3 px-3 font-bold text-zinc-300">
                             #{token.position}
                           </td>
-                          <td className="py-3 px-3 font-bold text-white tracking-wider">
-                            {token.displayNumber}
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-white tracking-wider">
+                              {token.displayNumber}
+                            </div>
+                            <div className="text-[10px] text-zinc-400">
+                              {token.visitorName}
+                            </div>
                           </td>
-                          <td className="py-3 px-3 text-zinc-300">
-                            <div>{token.visitorName}</div>
-                            <div className="text-[10px] text-zinc-500 truncate max-w-[120px]">
-                              {token.purpose}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {renderEsiBadge(token.triageLevel)}
+                              {token.isDeteriorating && (
+                                <span className="px-1.5 py-0.5 rounded border border-rose-600 bg-rose-950 text-rose-300 text-[9px] font-bold animate-pulse">
+                                  DISTRESS
+                                </span>
+                              )}
+                              {token.starvationAlert && (
+                                <span className="px-1.5 py-0.5 rounded border border-amber-600 bg-amber-950 text-amber-300 text-[9px] font-bold">
+                                  WAIT &gt;45M
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-zinc-400 truncate max-w-[180px] mt-0.5">
+                              {token.chiefComplaint || token.purpose}
                             </div>
                           </td>
                           <td className="py-3 px-3">
@@ -661,7 +830,7 @@ export default function CounterConsolePage() {
                           colSpan={5}
                           className="py-12 text-center text-zinc-500 font-mono"
                         >
-                          No visitors waiting in this category view.
+                          No patients waiting in this category view.
                         </td>
                       </tr>
                     )}

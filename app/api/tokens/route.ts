@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { createToken } from "@/lib/queue/engine";
+import { classifyPatientSymptoms } from "@/lib/ai/cohere";
 import { CreateTokenSchema } from "@/lib/security/validation";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { checkTokenCreationRateLimit } from "@/lib/security/rate-limit";
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { queueId, visitorName, purpose, turnstileToken, honeypot } = parsed.data;
+    const { queueId, visitorName, purpose, chiefComplaint, vitalSigns, turnstileToken, honeypot } = parsed.data;
 
     // 2. Honeypot Bot Check
     if (honeypot && honeypot.length > 0) {
@@ -85,18 +86,28 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Sanitization
-    const cleanVisitorName = sanitizeText(visitorName) || "Visitor";
-    const cleanPurpose = sanitizeText(purpose) || "General Service";
+    const cleanVisitorName = sanitizeText(visitorName) || "Patient";
+    const cleanPurpose = sanitizeText(purpose) || "Clinical Consultation";
+    const cleanComplaint = sanitizeText(chiefComplaint) || cleanPurpose;
 
-    // 6. Generate Unique Session ID for each ticket submission
+    // 6. Clinical Symptom & Triage Classification
+    const triageResult = await classifyPatientSymptoms(cleanComplaint, vitalSigns);
+
+    // 7. Generate Unique Session ID for each ticket submission
     const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    // 7. Atomic Queue Engine Execution
+    // 8. Atomic Queue Engine Execution
     const token = await createToken({
       queueId,
       visitorSessionId: sessionId,
       visitorName: cleanVisitorName,
       purpose: cleanPurpose,
+      chiefComplaint: cleanComplaint,
+      vitalSigns: vitalSigns || null,
+      triageLevel: triageResult.triageLevel,
+      riskFlags: triageResult.riskFlags,
+      targetDepartment: triageResult.departmentType,
+      currentStage: "TRIAGE_INTAKE",
     });
 
     const response = NextResponse.json({ success: true, token }, { status: 201 });

@@ -105,24 +105,50 @@ export async function POST(request: NextRequest) {
       }
 
       case "TRANSFER": {
-        if (!targetQueueId) {
-          return NextResponse.json(
-            { success: false, error: "Target queue ID required for transfer" },
-            { status: 400 }
-          );
-        }
+        const { targetStage, targetDepartment } = parsed.data;
         const counter = await prisma.counter.findUnique({ where: { id: counterId } });
         if (!counter || !counter.currentServingTokenId) {
           return NextResponse.json(
-            { success: false, error: "No active token being served to transfer" },
+            { success: false, error: "No active patient token being served to transfer" },
             { status: 400 }
           );
         }
+
+        // If targetQueueId is not passed, find queue by targetDepartment
+        let effectiveQueueId = targetQueueId;
+        if (!effectiveQueueId && targetDepartment) {
+          const matchedQueue = await prisma.queue.findFirst({
+            where: { department: targetDepartment as any },
+          });
+          if (matchedQueue) {
+            effectiveQueueId = matchedQueue.id;
+          }
+        }
+
+        if (!effectiveQueueId && !targetStage) {
+          return NextResponse.json(
+            { success: false, error: "Target queue ID, clinical department, or stage required for transfer" },
+            { status: 400 }
+          );
+        }
+
         const result = await transferToken({
           tokenId: counter.currentServingTokenId,
-          targetQueueId,
+          targetQueueId: effectiveQueueId || undefined,
+          targetStage: targetStage as any,
+          targetDepartment: targetDepartment as any,
           actor: operatorName || counter.operatorName,
         });
+
+        // Free up counter after initiating patient transfer
+        await prisma.counter.update({
+          where: { id: counter.id },
+          data: {
+            currentServingTokenId: null,
+            status: counter.status === "PAUSED" ? "PAUSED" : "AVAILABLE",
+          },
+        });
+
         return NextResponse.json({ success: true, token: result });
       }
 

@@ -13,6 +13,7 @@ import {
   QrCode,
   Smartphone,
   Share2,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
@@ -31,6 +32,14 @@ interface TokenDetail {
   visitorSessionId: string;
   visitorName: string;
   purpose: string;
+  chiefComplaint?: string | null;
+  vitalSigns?: any;
+  riskFlags?: string[];
+  triageLevel?: string;
+  currentStage?: string;
+  targetDepartment?: string;
+  isDeteriorating?: boolean;
+  starvationAlert?: boolean;
   status: "WAITING" | "CALLED" | "SERVING" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
   position: number;
   priority: "STANDARD" | "EMERGENCY";
@@ -174,6 +183,25 @@ export default function VisitorMobilePassPage() {
   const hasApprovedEmergency = token.emergencyRequest?.status === "APPROVED";
   const hasRejectedEmergency = token.emergencyRequest?.status === "REJECTED";
 
+  const getStageIndex = (stage?: string) => {
+    switch (stage) {
+      case "TRIAGE_INTAKE":
+        return 0;
+      case "DOCTOR_CONSULTATION":
+        return 1;
+      case "DIAGNOSTICS_LAB":
+      case "DIAGNOSTICS_IMAGING":
+        return 2;
+      case "PHARMACY_DISPENSING":
+        return 3;
+      case "COMPLETED":
+        return 4;
+      default:
+        return 0;
+    }
+  };
+  const currentStepIndex = getStageIndex(token.currentStage);
+
   return (
     <div className="max-w-md mx-auto space-y-5 sm:space-y-6 pb-12">
       {/* Top Header & Connection Badge */}
@@ -199,12 +227,58 @@ export default function VisitorMobilePassPage() {
       {/* Surface Header */}
       <div className="text-center space-y-0.5 sm:space-y-1">
         <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-          {token.queue?.department || "Department"} • {token.queue?.name || "Queue"}
+          {token.queue?.department || "Clinical Care Pathway"} • {token.queue?.name || "OPD"}
         </span>
         <h1 className="text-base sm:text-lg font-mono font-bold uppercase tracking-wide text-zinc-100">
-          Visitor Mobile Pass
+          Patient Clinical Care Pass
         </h1>
       </div>
+
+      {/* Visual Linear 4-Stage Stepper */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 space-y-2">
+        <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-zinc-400">
+          <span>Clinical Care Pathway</span>
+          <span className="text-zinc-200 font-semibold">
+            {token.currentStage ? token.currentStage.replace(/_/g, " ") : "TRIAGE INTAKE"}
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+          {[
+            { label: "Triage Intake", active: currentStepIndex >= 0, current: currentStepIndex === 0 },
+            { label: "Doctor Cabin", active: currentStepIndex >= 1, current: currentStepIndex === 1 },
+            { label: "Diagnostics", active: currentStepIndex >= 2, current: currentStepIndex === 2 },
+            { label: "Pharmacy", active: currentStepIndex >= 3, current: currentStepIndex === 3 },
+          ].map((step, idx) => (
+            <div
+              key={idx}
+              className={`text-center py-1.5 px-1 rounded text-[10px] font-mono border transition-colors ${
+                step.current
+                  ? "border-emerald-500 bg-emerald-950/40 text-emerald-300 font-bold"
+                  : step.active
+                  ? "border-zinc-700 bg-zinc-800/60 text-zinc-300"
+                  : "border-zinc-800/80 bg-zinc-950/40 text-zinc-600"
+              }`}
+            >
+              <span className="block truncate">{step.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Clinical Distress Alert Banner */}
+      {token.isDeteriorating && (
+        <div className="rounded-lg border border-rose-600/90 bg-rose-950/50 p-3 flex items-start gap-2.5 animate-pulse">
+          <Activity className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <span className="font-mono uppercase font-bold text-rose-200 block">
+              Clinical Distress Reported
+            </span>
+            <span className="text-rose-300/80 text-[11px]">
+              Nursing station alerted. Your position has been escalated to immediate review.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Emergency Status Banner if active */}
       {hasPendingEmergency && (
@@ -359,14 +433,23 @@ export default function VisitorMobilePassPage() {
       {/* Token Metadata Card */}
       <Panel className="space-y-3">
         <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-zinc-500 uppercase">Service Purpose</span>
+          <span className="text-zinc-500 uppercase">Chief Complaint</span>
           <span className="text-zinc-200 font-medium truncate max-w-[200px]">
-            {token.purpose}
+            {token.chiefComplaint || token.purpose}
           </span>
         </div>
 
+        {token.triageLevel && (
+          <div className="flex items-center justify-between text-xs font-mono border-t border-zinc-850 pt-2">
+            <span className="text-zinc-500 uppercase">Triage Acuity</span>
+            <span className="text-zinc-300 font-bold">
+              {token.triageLevel.replace("LEVEL_", "ESI ")}
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-xs font-mono border-t border-zinc-850 pt-2">
-          <span className="text-zinc-500 uppercase">Issue Timestamp</span>
+          <span className="text-zinc-500 uppercase">Intake Timestamp</span>
           <span className="text-zinc-400">
             {new Date(token.createdAt).toLocaleTimeString([], {
               hour: "2-digit",
@@ -385,16 +468,16 @@ export default function VisitorMobilePassPage() {
       {/* Action Controls for Active Waiting Tokens */}
       {token.status === "WAITING" && (
         <div className="space-y-3 pt-2">
-          {!token.emergencyRequest && (
+          {!token.isDeteriorating && !token.emergencyRequest && (
             <Button
               type="button"
               variant="danger"
               size="md"
               className="w-full"
               onClick={() => setIsEmergencyModalOpen(true)}
-              icon={<ShieldAlert className="w-4 h-4" />}
+              icon={<Activity className="w-4 h-4" />}
             >
-              Request Priority Review
+              Feeling Worse? Report Clinical Distress
             </Button>
           )}
 
@@ -406,7 +489,7 @@ export default function VisitorMobilePassPage() {
             onClick={handleCancelToken}
             isLoading={isCancelling}
           >
-            Cancel My Queue Token
+            Cancel My Care Pass
           </Button>
         </div>
       )}

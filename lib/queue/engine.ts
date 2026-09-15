@@ -1,10 +1,55 @@
 import { prisma } from "../db/prisma";
 import { realtimeBus } from "../realtime/events";
 import { calculateEstimatedWaitTime } from "../eta/calculator";
+import { TriageLevel, CareStage, DepartmentType } from "@prisma/client";
 
 /**
- * Re-indexes all active WAITING tokens for a given queue in atomic order.
- * Emergency tokens are placed first, followed by standard tokens by creation time.
+ * Acuity Weights (W_acuity) Constants based on Emergency Severity Index (ESI)
+ */
+export const ACUITY_WEIGHTS: Record<TriageLevel, number> = {
+  LEVEL_1_RESUSCITATION: 1000000,
+  LEVEL_2_EMERGENT: 50000,
+  LEVEL_3_URGENT: 5000,
+  LEVEL_4_LESS_URGENT: 500,
+  LEVEL_5_NON_URGENT: 50,
+};
+
+/**
+ * Starvation Multipliers (K_starve) per elapsed minute of waiting
+ */
+export const STARVATION_RATES: Record<TriageLevel, number> = {
+  LEVEL_1_RESUSCITATION: 25,
+  LEVEL_2_EMERGENT: 20,
+  LEVEL_3_URGENT: 15,
+  LEVEL_4_LESS_URGENT: 8,
+  LEVEL_5_NON_URGENT: 4,
+};
+
+/**
+ * Acuity-Time Hybrid Priority Ranking:
+ * R = W_acuity + (delta_t * K_starve) + DeteriorationBoost
+ */
+export function calculatePriorityScore(token: {
+  triageLevel?: TriageLevel | string;
+  createdAt: Date | string;
+  isDeteriorating?: boolean;
+}): number {
+  const level = (token.triageLevel as TriageLevel) || "LEVEL_5_NON_URGENT";
+  const weight = ACUITY_WEIGHTS[level] ?? 50;
+  const starveRate = STARVATION_RATES[level] ?? 4;
+
+  const createdTime = new Date(token.createdAt).getTime();
+  const elapsedMinutes = Math.max(0, (Date.now() - createdTime) / (1000 * 60));
+  const starveScore = elapsedMinutes * starveRate;
+
+  const deteriorationBoost = token.isDeteriorating ? 100000 : 0;
+
+  return weight + starveScore + deteriorationBoost;
+}
+
+/**
+ * Re-indexes all active WAITING tokens for a given queue in Acuity-Time Hybrid priority order (R).
+ * High acuity and deteriorating patients are prioritized, while lower acuity tokens receive starvation boosts.
  */
 export async function reindexQueuePositions(db: any = prisma, queueId: string) {
   const client = db || prisma;
@@ -13,28 +58,38 @@ export async function reindexQueuePositions(db: any = prisma, queueId: string) {
       queueId,
       status: "WAITING",
     },
-    orderBy: [
-      { createdAt: "asc" },
-    ],
   });
 
-  // Explicitly prioritize EMERGENCY priority over STANDARD, then by arrival time
+  // Sort tokens by dynamic priority score (R) descending
   waitingTokens.sort((a: any, b: any) => {
-    const aPri = a.priority === "EMERGENCY" ? 1 : 0;
-    const bPri = b.priority === "EMERGENCY" ? 1 : 0;
-    if (aPri !== bPri) return bPri - aPri; // 1 (EMERGENCY) comes first
-    return a.createdAt.getTime() - b.createdAt.getTime();
+    const scoreA = calculatePriorityScore(a);
+    const scoreB = calculatePriorityScore(b);
+    if (scoreB !== scoreA) {
+      return scoreB - scoreA; // Higher score comes first
+    }
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
   for (let i = 0; i < waitingTokens.length; i++) {
     const token = waitingTokens[i];
     const newPosition = i + 1;
-    if (token.position !== newPosition) {
+    const elapsedMinutes = (Date.now() - new Date(token.createdAt).getTime()) / (1000 * 60);
+    const shouldAlertStarvation =
+      elapsedMinutes > 45 &&
+      (token.triageLevel === "LEVEL_3_URGENT" ||
+        token.triageLevel === "LEVEL_4_LESS_URGENT" ||
+        token.triageLevel === "LEVEL_5_NON_URGENT");
+
+    if (token.position !== newPosition || token.starvationAlert !== shouldAlertStarvation) {
       await client.token.update({
         where: { id: token.id },
-        data: { position: newPosition },
+        data: {
+          position: newPosition,
+          starvationAlert: shouldAlertStarvation,
+        },
       });
       token.position = newPosition;
+      token.starvationAlert = shouldAlertStarvation;
     }
   }
 
@@ -55,15 +110,32 @@ export async function getActiveCounterCount(queueId: string): Promise<number> {
 }
 
 /**
- * Create a new Token atomically
+ * Create a new Token atomically with clinical triage classification
  */
 export async function createToken(params: {
   queueId: string;
   visitorSessionId: string;
   visitorName: string;
-  purpose: string;
+  purpose?: string;
+  chiefComplaint?: string;
+  vitalSigns?: any;
+  riskFlags?: string[];
+  triageLevel?: TriageLevel;
+  currentStage?: CareStage;
+  targetDepartment?: DepartmentType;
 }) {
-  const { queueId, visitorSessionId, visitorName, purpose } = params;
+  const {
+    queueId,
+    visitorSessionId,
+    visitorName,
+    purpose,
+    chiefComplaint,
+    vitalSigns,
+    riskFlags = [],
+    triageLevel = "LEVEL_5_NON_URGENT",
+    currentStage = "TRIAGE_INTAKE",
+    targetDepartment = "GENERAL_OPD",
+  } = params;
 
   const queue = await prisma.queue.findUnique({
     where: { id: queueId },
@@ -86,6 +158,7 @@ export async function createToken(params: {
   const sequenceNumber = tokenCount + 1;
   const displayNumber = `${queue.code}-${String(sequenceNumber).padStart(3, "0")}`;
   const position = waitingCount + 1;
+  const isEmergency = triageLevel === "LEVEL_1_RESUSCITATION" || triageLevel === "LEVEL_2_EMERGENT";
 
   const token = await prisma.token.create({
     data: {
@@ -93,59 +166,86 @@ export async function createToken(params: {
       sequenceNumber,
       queueId,
       visitorSessionId,
-      visitorName: visitorName || "Visitor",
-      purpose: purpose || "General Service",
+      visitorName: visitorName || "Patient",
+      purpose: purpose || chiefComplaint || "Clinical Consultation",
+      chiefComplaint: chiefComplaint || purpose || null,
+      vitalSigns: vitalSigns || null,
+      riskFlags,
+      triageLevel,
+      currentStage,
+      targetDepartment,
       status: "WAITING",
       position,
-      priority: "STANDARD",
+      priority: isEmergency ? "EMERGENCY" : "STANDARD",
+      lastVitalsCheckAt: new Date(),
     },
     include: {
       queue: true,
     },
   });
 
+  // Re-index queue with acuity weighting
+  await reindexQueuePositions(prisma, queueId);
+
+  const finalToken = (await prisma.token.findUnique({
+    where: { id: token.id },
+    include: { queue: true },
+  })) || token;
+
   // Record audit event asynchronously
   await prisma.tokenEvent.create({
     data: {
-      tokenId: token.id,
-      queueId: token.queueId,
+      tokenId: finalToken.id,
+      queueId: finalToken.queueId,
       eventType: "TOKEN_CREATED",
-      actor: visitorName || "VISITOR",
+      actor: visitorName || "PATIENT",
       metadata: JSON.stringify({
         displayNumber,
-        position,
+        position: finalToken.position,
+        triageLevel,
+        currentStage,
         queueName: queue.name,
       }),
     },
   }).catch((err) => console.error("Event record non-fatal error:", err));
 
   // Publish Realtime Event
-  const activeCounters = await getActiveCounterCount(token.queueId);
+  const activeCounters = await getActiveCounterCount(finalToken.queueId);
   const eta = calculateEstimatedWaitTime({
-    position: token.position,
-    estimatedServiceTimeMins: token.queue.estimatedServiceTime,
+    position: finalToken.position,
+    estimatedServiceTimeMins: finalToken.queue.estimatedServiceTime,
     activeCounterCount: activeCounters,
+    triageLevel: finalToken.triageLevel,
+    isDeteriorating: finalToken.isDeteriorating,
   });
 
   realtimeBus.publish("TOKEN_CREATED", {
-    tokenId: token.id,
-    queueId: token.queueId,
+    tokenId: finalToken.id,
+    queueId: finalToken.queueId,
     data: {
       token: {
-        id: token.id,
-        displayNumber: token.displayNumber,
-        position: token.position,
-        status: token.status,
-        priority: token.priority,
-        visitorName: token.visitorName,
-        purpose: token.purpose,
-        queueName: token.queue.name,
+        id: finalToken.id,
+        displayNumber: finalToken.displayNumber,
+        position: finalToken.position,
+        status: finalToken.status,
+        priority: finalToken.priority,
+        triageLevel: finalToken.triageLevel,
+        currentStage: finalToken.currentStage,
+        targetDepartment: finalToken.targetDepartment,
+        visitorName: finalToken.visitorName,
+        purpose: finalToken.purpose,
+        chiefComplaint: finalToken.chiefComplaint,
+        vitalSigns: finalToken.vitalSigns,
+        riskFlags: finalToken.riskFlags,
+        isDeteriorating: finalToken.isDeteriorating,
+        starvationAlert: finalToken.starvationAlert,
+        queueName: finalToken.queue.name,
         eta,
       },
     },
   });
 
-  return token;
+  return finalToken;
 }
 
 /**
@@ -452,11 +552,12 @@ export async function approveEmergencyRequest(requestId: string, reviewer = "Adm
     },
   });
 
-  // Promote token to EMERGENCY priority
+  // Promote token to EMERGENCY priority and LEVEL_1_RESUSCITATION
   await prisma.token.update({
     where: { id: token.id },
     data: {
       priority: "EMERGENCY",
+      triageLevel: "LEVEL_1_RESUSCITATION",
     },
   });
 
@@ -493,6 +594,7 @@ export async function approveEmergencyRequest(requestId: string, reviewer = "Adm
         displayNumber: promotedToken!.displayNumber,
         position: promotedToken!.position,
         priority: promotedToken!.priority,
+        triageLevel: promotedToken!.triageLevel,
         status: promotedToken!.status,
       },
       request: {
@@ -590,10 +692,13 @@ export async function toggleDirectEmergency(
 
   const newPriority = setEmergency ? "EMERGENCY" : "STANDARD";
 
-  // Update token priority
+  // Update token priority and triage level
   await prisma.token.update({
     where: { id: tokenId },
-    data: { priority: newPriority },
+    data: {
+      priority: newPriority,
+      triageLevel: setEmergency ? "LEVEL_1_RESUSCITATION" : "LEVEL_5_NON_URGENT",
+    },
   });
 
   // If there's an existing emergency request, update it as well
@@ -848,23 +953,26 @@ export async function markNoShow(counterId: string) {
 }
 
 /**
- * Transfer Token to another Queue
+ * Multi-stage clinical care transition and queue transfer function.
+ * Allows a token to transition currentStage (e.g. DOCTOR_CONSULTATION -> DIAGNOSTICS_LAB)
+ * and assign targetDepartment without changing the token's unique ID or display number.
  */
 export async function transferToken(params: {
   tokenId: string;
-  targetQueueId: string;
+  targetQueueId?: string;
+  targetStage?: CareStage;
+  targetDepartment?: DepartmentType;
   actor?: string;
   notes?: string;
 }) {
-  const { tokenId, targetQueueId, actor = "Operator", notes } = params;
-
-  const targetQueue = await prisma.queue.findUnique({
-    where: { id: targetQueueId },
-  });
-
-  if (!targetQueue) {
-    throw new Error("Target queue not found");
-  }
+  const {
+    tokenId,
+    targetQueueId,
+    targetStage,
+    targetDepartment,
+    actor = "Clinical Staff",
+    notes,
+  } = params;
 
   const token = await prisma.token.findUnique({
     where: { id: tokenId },
@@ -876,36 +984,55 @@ export async function transferToken(params: {
   }
 
   const oldQueueId = token.queueId;
+  const effectiveQueueId = targetQueueId || oldQueueId;
+
+  let targetQueue = token.queue;
+  if (targetQueueId && targetQueueId !== oldQueueId) {
+    const foundQueue = await prisma.queue.findUnique({
+      where: { id: targetQueueId },
+    });
+    if (foundQueue) {
+      targetQueue = foundQueue;
+    }
+  }
 
   // Calculate new position in target queue
   const targetWaitingCount = await prisma.token.count({
-    where: { queueId: targetQueueId, status: "WAITING" },
+    where: { queueId: effectiveQueueId, status: "WAITING" },
   });
 
   const updatedToken = await prisma.token.update({
     where: { id: tokenId },
     data: {
-      queueId: targetQueueId,
+      queueId: effectiveQueueId,
       status: "WAITING",
       position: targetWaitingCount + 1,
       counterId: null,
+      ...(targetStage ? { currentStage: targetStage } : {}),
+      ...(targetDepartment ? { targetDepartment: targetDepartment } : {}),
     },
     include: { queue: true },
   });
 
-  // Re-index remaining tokens in old queue
-  await reindexQueuePositions(prisma, oldQueueId);
+  // Re-index remaining tokens in queues
+  if (oldQueueId !== effectiveQueueId) {
+    await reindexQueuePositions(prisma, oldQueueId);
+  }
+  await reindexQueuePositions(prisma, effectiveQueueId);
 
-  // Record event
+  // Record audit event
   await prisma.tokenEvent.create({
     data: {
       tokenId: token.id,
-      queueId: targetQueueId,
+      queueId: effectiveQueueId,
       eventType: "TOKEN_TRANSFERRED",
       actor,
       metadata: JSON.stringify({
         fromQueue: token.queue.name,
         toQueue: targetQueue.name,
+        fromStage: token.currentStage,
+        toStage: updatedToken.currentStage,
+        targetDepartment: updatedToken.targetDepartment,
         displayNumber: token.displayNumber,
         notes,
       }),
@@ -914,18 +1041,92 @@ export async function transferToken(params: {
 
   realtimeBus.publish("TOKEN_TRANSFERRED", {
     tokenId: token.id,
-    queueId: targetQueueId,
+    queueId: effectiveQueueId,
     data: {
       token: {
         id: token.id,
         displayNumber: token.displayNumber,
         position: updatedToken.position,
         queueName: targetQueue.name,
+        currentStage: updatedToken.currentStage,
+        targetDepartment: updatedToken.targetDepartment,
+        status: updatedToken.status,
       },
     },
   });
 
   return updatedToken;
+}
+
+/**
+ * Mark a waiting token as clinically deteriorating:
+ * Sets isDeteriorating = true, grants +100,000 DeteriorationBoost, promotes priority to head of queue,
+ * and broadcasts immediate alert to staff counters.
+ */
+export async function markTokenDeteriorating(tokenId: string, reason?: string, vitals?: any) {
+  const token = await prisma.token.findUnique({
+    where: { id: tokenId },
+    include: { queue: true },
+  });
+
+  if (!token) {
+    throw new Error("Token not found");
+  }
+
+  const updatedToken = await prisma.token.update({
+    where: { id: tokenId },
+    data: {
+      isDeteriorating: true,
+      priority: "EMERGENCY",
+      ...(vitals ? { vitalSigns: vitals } : {}),
+      lastVitalsCheckAt: new Date(),
+    },
+    include: { queue: true },
+  });
+
+  // Re-index queue with +100,000 deterioration boost
+  await reindexQueuePositions(prisma, token.queueId);
+
+  const refreshedToken = await prisma.token.findUnique({
+    where: { id: tokenId },
+    include: { queue: true },
+  });
+
+  // Record audit event
+  await prisma.tokenEvent.create({
+    data: {
+      tokenId: token.id,
+      queueId: token.queueId,
+      eventType: "EMERGENCY_PROMOTED",
+      actor: token.visitorName || "PATIENT",
+      metadata: JSON.stringify({
+        displayNumber: token.displayNumber,
+        reason: reason || "Clinical deterioration reported",
+        newPosition: refreshedToken?.position,
+        vitals,
+      }),
+    },
+  }).catch(() => {});
+
+  realtimeBus.publish("EMERGENCY_PROMOTED", {
+    tokenId: token.id,
+    queueId: token.queueId,
+    data: {
+      token: {
+        id: token.id,
+        displayNumber: token.displayNumber,
+        position: refreshedToken?.position,
+        isDeteriorating: true,
+        priority: "EMERGENCY",
+        triageLevel: refreshedToken?.triageLevel,
+        status: refreshedToken?.status,
+        queueName: token.queue.name,
+      },
+      reason: reason || "Clinical deterioration reported",
+    },
+  });
+
+  return refreshedToken;
 }
 
 /**
@@ -979,8 +1180,8 @@ export async function toggleCounterPause(counterId: string, pause: boolean) {
 }
 
 /**
- * Realistic Demo Seeder:
- * Seeds standard queues, counters, and tokens (A #1, B #2, C #3, D #4)
+ * Realistic Clinical Demo Seeder:
+ * Seeds clinical departments, examination cabins/stations, and patients across ESI Levels 1-5.
  */
 export async function seedRealisticDemoData() {
   // Clear existing data cleanly
@@ -990,164 +1191,258 @@ export async function seedRealisticDemoData() {
   await prisma.counter.deleteMany({});
   await prisma.queue.deleteMany({});
 
-  // Create 3 Institutional Queues
-  const queueGeneral = await prisma.queue.create({
+  // 1. Create Clinical Department Queues
+  const queueTriage = await prisma.queue.create({
     data: {
-      name: "General Admissions & Records",
-      code: "A",
-      department: "Admissions",
-      description: "Enrollment, verification, registration, transcripts",
+      name: "Triage & Acute Assessment",
+      code: "TR",
+      department: "TRIAGE_DESK",
+      description: "Immediate clinical intake, vital signs, acuity scoring",
       status: "ACTIVE",
-      estimatedServiceTime: 4,
+      estimatedServiceTime: 3,
     },
   });
 
-  const queueStudent = await prisma.queue.create({
+  const queueEmergency = await prisma.queue.create({
     data: {
-      name: "Student Services & Counseling",
-      code: "B",
-      department: "Student Affairs",
-      description: "Academic advice, ID cards, grievance, housing",
+      name: "Emergency Room & Resuscitation",
+      code: "ED",
+      department: "EMERGENCY_ROOM",
+      description: "Critical emergency care, trauma, acute stabilization",
+      status: "ACTIVE",
+      estimatedServiceTime: 12,
+    },
+  });
+
+  const queueOPD = await prisma.queue.create({
+    data: {
+      name: "General Outpatient Clinics",
+      code: "OPD",
+      department: "GENERAL_OPD",
+      description: "Physician consultations, chronic care, sub-specialty clinics",
+      status: "ACTIVE",
+      estimatedServiceTime: 8,
+    },
+  });
+
+  const queueDiagnostics = await prisma.queue.create({
+    data: {
+      name: "Diagnostic Labs & Radiology",
+      code: "DX",
+      department: "PATHOLOGY_LAB",
+      description: "Phlebotomy, rapid hematology, X-Ray, CT imaging",
       status: "ACTIVE",
       estimatedServiceTime: 6,
     },
   });
 
-  const queueFinance = await prisma.queue.create({
+  const queuePharmacy = await prisma.queue.create({
     data: {
-      name: "Financial Aid & Cashier",
-      code: "C",
-      department: "Finance",
-      description: "Tuition fee payment, scholarship claims, refunds",
+      name: "Outpatient Central Pharmacy",
+      code: "RX",
+      department: "CENTRAL_PHARMACY",
+      description: "Prescription verification, patient counselling, drug dispensing",
       status: "ACTIVE",
-      estimatedServiceTime: 5,
+      estimatedServiceTime: 4,
     },
   });
 
-  // Create 3 Workstation Counters
+  // 2. Create Clinical Stations / Workstations
   const counter1 = await prisma.counter.create({
     data: {
       number: 1,
-      name: "Counter 01",
-      queueId: queueStudent.id,
+      name: "Triage Station 01",
+      queueId: queueTriage.id,
       status: "AVAILABLE",
-      operatorName: "Sarah Jenkins",
+      operatorName: "Nurse Elena Vance, RN",
     },
   });
 
   const counter2 = await prisma.counter.create({
     data: {
       number: 2,
-      name: "Counter 02",
-      queueId: queueStudent.id,
+      name: "Doctor Cabin 01 (Acute)",
+      queueId: queueOPD.id,
       status: "AVAILABLE",
-      operatorName: "Marcus Vance",
+      operatorName: "Dr. Marcus Chen, MD",
     },
   });
 
   const counter3 = await prisma.counter.create({
     data: {
       number: 3,
-      name: "Counter 03",
-      queueId: queueGeneral.id,
+      name: "Doctor Cabin 02 (General)",
+      queueId: queueOPD.id,
       status: "AVAILABLE",
-      operatorName: "Elena Rostova",
+      operatorName: "Dr. Sarah Jenkins, MBBS",
     },
   });
 
-  // Seed 4 Benchmark Waiting Tokens for Queue B (Student Services)
+  const counter4 = await prisma.counter.create({
+    data: {
+      number: 4,
+      name: "Diagnostics Phlebotomy Bay",
+      queueId: queueDiagnostics.id,
+      status: "AVAILABLE",
+      operatorName: "Tech Rajesh Kumar",
+    },
+  });
+
+  const counter5 = await prisma.counter.create({
+    data: {
+      number: 5,
+      name: "Radiology Scan Room",
+      queueId: queueDiagnostics.id,
+      status: "AVAILABLE",
+      operatorName: "Tech David O'Connor",
+    },
+  });
+
+  const counter6 = await prisma.counter.create({
+    data: {
+      number: 6,
+      name: "Pharmacy Dispense Counter",
+      queueId: queuePharmacy.id,
+      status: "AVAILABLE",
+      operatorName: "Pharm. Ananya Rao, RPh",
+    },
+  });
+
+  // 3. Seed Benchmark Patients across ESI Levels in General OPD Queue
+  // Patient A: Level 2 Emergent (Severe Chest Pain, high priority)
   const tokenA = await prisma.token.create({
     data: {
-      displayNumber: "B-001",
+      displayNumber: "OPD-001",
       sequenceNumber: 1,
-      queueId: queueStudent.id,
-      visitorSessionId: "session_user_a",
-      visitorName: "Alice Miller",
-      purpose: "Transcript Attestation",
+      queueId: queueOPD.id,
+      visitorSessionId: "session_patient_a",
+      visitorName: "Arthur Pendelton",
+      purpose: "Acute Chest Tightness & Cold Sweat",
+      chiefComplaint: "Crushing retrosternal chest pain radiating to left arm",
+      vitalSigns: { spo2: 92, hr: 115, systolicBp: 158, diastolicBp: 98, temp: 37.1 },
+      riskFlags: ["CARDIAC_ALERT", "HYPOXIA_WATCH"],
+      triageLevel: "LEVEL_2_EMERGENT",
+      currentStage: "DOCTOR_CONSULTATION",
+      targetDepartment: "CARDIOLOGY",
       status: "WAITING",
       position: 1,
-      priority: "STANDARD",
+      priority: "EMERGENCY",
+      createdAt: new Date(Date.now() - 10 * 60 * 1000), // 10 min ago
+      lastVitalsCheckAt: new Date(Date.now() - 5 * 60 * 1000),
     },
   });
 
+  // Patient B: Level 3 Urgent (Abdominal pain, stable vitals)
   const tokenB = await prisma.token.create({
     data: {
-      displayNumber: "B-002",
+      displayNumber: "OPD-002",
       sequenceNumber: 2,
-      queueId: queueStudent.id,
-      visitorSessionId: "session_user_b",
-      visitorName: "Bob Smith",
-      purpose: "Campus ID Replacement",
+      queueId: queueOPD.id,
+      visitorSessionId: "session_patient_b",
+      visitorName: "Beatrice Morales",
+      purpose: "Right Lower Quadrant Abdominal Pain",
+      chiefComplaint: "Acute abdominal pain for 6 hours, nausea, localized guarding",
+      vitalSigns: { spo2: 98, hr: 88, systolicBp: 122, diastolicBp: 78, temp: 38.2 },
+      riskFlags: ["FEBRILE", "SURGICAL_EVAL"],
+      triageLevel: "LEVEL_3_URGENT",
+      currentStage: "DOCTOR_CONSULTATION",
+      targetDepartment: "GENERAL_OPD",
       status: "WAITING",
       position: 2,
       priority: "STANDARD",
+      createdAt: new Date(Date.now() - 52 * 60 * 1000), // 52 min ago -> Starvation boost active!
+      lastVitalsCheckAt: new Date(Date.now() - 50 * 60 * 1000),
+      starvationAlert: true,
     },
   });
 
+  // Patient C: Level 4 Less Urgent (Suture removal / minor ankle sprain)
   const tokenC = await prisma.token.create({
     data: {
-      displayNumber: "B-003",
+      displayNumber: "OPD-003",
       sequenceNumber: 3,
-      queueId: queueStudent.id,
-      visitorSessionId: "session_user_c",
-      visitorName: "Charlie Brown",
-      purpose: "Student ID Card",
+      queueId: queueOPD.id,
+      visitorSessionId: "session_patient_c",
+      visitorName: "Charles Davies",
+      purpose: "Right Ankle Inversion Injury",
+      chiefComplaint: "Twisted ankle while walking downstairs, mild swelling, able to bear weight",
+      vitalSigns: { spo2: 99, hr: 74, systolicBp: 118, diastolicBp: 76, temp: 36.8 },
+      riskFlags: [],
+      triageLevel: "LEVEL_4_LESS_URGENT",
+      currentStage: "DOCTOR_CONSULTATION",
+      targetDepartment: "ORTHOPEDICS",
       status: "WAITING",
       position: 3,
       priority: "STANDARD",
+      createdAt: new Date(Date.now() - 20 * 60 * 1000),
+      lastVitalsCheckAt: new Date(Date.now() - 20 * 60 * 1000),
     },
   });
 
+  // Patient D: Level 5 Non-Urgent (Routine Rx refill)
   const tokenD = await prisma.token.create({
     data: {
-      displayNumber: "B-004",
+      displayNumber: "OPD-004",
       sequenceNumber: 4,
-      queueId: queueStudent.id,
-      visitorSessionId: "session_user_d",
-      visitorName: "David Vance",
-      purpose: "Emergency Document Verification",
+      queueId: queueOPD.id,
+      visitorSessionId: "session_patient_d",
+      visitorName: "Dorothy Sterling",
+      purpose: "Hypertension Medication Refill",
+      chiefComplaint: "Routine 90-day refill request for Amlodipine, asymptomatic",
+      vitalSigns: { spo2: 99, hr: 68, systolicBp: 128, diastolicBp: 82, temp: 36.6 },
+      riskFlags: [],
+      triageLevel: "LEVEL_5_NON_URGENT",
+      currentStage: "DOCTOR_CONSULTATION",
+      targetDepartment: "GENERAL_OPD",
       status: "WAITING",
       position: 4,
       priority: "STANDARD",
+      createdAt: new Date(Date.now() - 35 * 60 * 1000),
+      lastVitalsCheckAt: new Date(Date.now() - 35 * 60 * 1000),
     },
   });
 
-  // Seed one completed token in Queue A and C for realistic analytics
+  // Seed completed consultation in Triage and ED for throughput metrics
   await prisma.token.create({
     data: {
-      displayNumber: "A-001",
+      displayNumber: "TR-001",
       sequenceNumber: 1,
-      queueId: queueGeneral.id,
-      visitorSessionId: "session_user_e",
-      visitorName: "Grace Hopper",
-      purpose: "Course Add/Drop Stamp",
-      status: "COMPLETED",
-      position: 0,
-      priority: "STANDARD",
-      calledAt: new Date(Date.now() - 15 * 60 * 1000),
-      completedAt: new Date(Date.now() - 5 * 60 * 1000),
-    },
-  });
-
-  await prisma.token.create({
-    data: {
-      displayNumber: "C-001",
-      sequenceNumber: 1,
-      queueId: queueFinance.id,
-      visitorSessionId: "session_user_f",
-      visitorName: "Alan Turing",
-      purpose: "Tuition Fee Clearance",
+      queueId: queueTriage.id,
+      visitorSessionId: "session_patient_e",
+      visitorName: "Evelyn Reed",
+      purpose: "Triage Intake Completed",
+      triageLevel: "LEVEL_3_URGENT",
       status: "COMPLETED",
       position: 0,
       priority: "STANDARD",
       calledAt: new Date(Date.now() - 25 * 60 * 1000),
-      completedAt: new Date(Date.now() - 12 * 60 * 1000),
+      completedAt: new Date(Date.now() - 21 * 60 * 1000),
     },
   });
 
+  await prisma.token.create({
+    data: {
+      displayNumber: "ED-001",
+      sequenceNumber: 1,
+      queueId: queueEmergency.id,
+      visitorSessionId: "session_patient_f",
+      visitorName: "Franklin Ross",
+      purpose: "Anaphylaxis Stabilization",
+      triageLevel: "LEVEL_1_RESUSCITATION",
+      status: "COMPLETED",
+      position: 0,
+      priority: "EMERGENCY",
+      calledAt: new Date(Date.now() - 40 * 60 * 1000),
+      completedAt: new Date(Date.now() - 15 * 60 * 1000),
+    },
+  });
+
+  // Re-index OPD queue with priority engine
+  await reindexQueuePositions(prisma, queueOPD.id);
+
   return {
-    queues: [queueGeneral, queueStudent, queueFinance],
-    counters: [counter1, counter2, counter3],
+    queues: [queueTriage, queueEmergency, queueOPD, queueDiagnostics, queuePharmacy],
+    counters: [counter1, counter2, counter3, counter4, counter5, counter6],
     tokens: [tokenA, tokenB, tokenC, tokenD],
   };
 }

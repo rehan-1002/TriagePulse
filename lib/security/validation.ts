@@ -2,8 +2,10 @@ import { z } from "zod";
 
 export const CreateTokenSchema = z.object({
   queueId: z.string().min(1, "Queue ID is required"),
-  visitorName: z.string().trim().max(100).default("Visitor"),
-  purpose: z.string().trim().max(200).default("General Service"),
+  visitorName: z.string().trim().max(100).default("Patient"),
+  purpose: z.string().trim().max(200).default("Clinical Consultation"),
+  chiefComplaint: z.string().trim().max(500).optional(),
+  vitalSigns: z.any().optional(),
   turnstileToken: z.string().optional(),
   honeypot: z.string().max(0, "Bot detected").optional(),
 });
@@ -11,6 +13,7 @@ export const CreateTokenSchema = z.object({
 export const EmergencyRequestSchema = z.object({
   tokenId: z.string().min(1, "Token ID is required"),
   reason: z.string().trim().min(3, "Reason must be at least 3 characters").max(500, "Reason too long"),
+  vitalSigns: z.any().optional(),
 });
 
 export const EmergencyReviewSchema = z.object({
@@ -25,5 +28,7 @@ export const CounterActionSchema = z.object({
   action: z.enum(["CALL_NEXT", "RECALL", "NO_SHOW", "TRANSFER", "PAUSE", "RESUME", "COMPLETE", "COMPLETE_SERVING", "START_SERVING", "ASSIGN_QUEUE"]),
   operatorName: z.string().trim().max(100).optional(),
   targetQueueId: z.string().nullable().optional(), // For TRANSFER or ASSIGN_QUEUE action
+  targetStage: z.string().optional(),
+  targetDepartment: z.string().optional(),
   specificTokenId: z.string().optional(), // For calling a specific token
 });

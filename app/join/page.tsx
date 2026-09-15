@@ -15,6 +15,9 @@ import {
   CreditCard,
   Smartphone,
   ChevronLeft,
+  Activity,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -43,6 +46,13 @@ export default function CheckInPage() {
   const [selectedQueueId, setSelectedQueueId] = useState<string>("");
   const [visitorName, setVisitorName] = useState<string>("");
   const [purpose, setPurpose] = useState<string>("");
+  const [chiefComplaint, setChiefComplaint] = useState<string>("");
+  const [showVitals, setShowVitals] = useState<boolean>(false);
+  const [spO2, setSpO2] = useState<string>("");
+  const [heartRate, setHeartRate] = useState<string>("");
+  const [bloodPressure, setBloodPressure] = useState<string>("");
+  const [age, setAge] = useState<string>("");
+  const [knownConditions, setKnownConditions] = useState<string>("");
   const [honeypot, setHoneypot] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +128,7 @@ export default function CheckInPage() {
       if (data.success && data.suggestions && data.suggestions.length > 0) {
         setAiSuggestions(data.suggestions);
         setSelectedQueueId(data.suggestions[0].queueId);
+        setChiefComplaint(aiPrompt.trim());
         setPurpose(aiPrompt.trim());
       }
     } catch (err) {
@@ -131,7 +142,13 @@ export default function CheckInPage() {
   const handleCreateToken = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedQueueId) {
-      setError("Please select a service queue.");
+      setError("Please select a clinical pathway.");
+      return;
+    }
+
+    const complaint = (chiefComplaint || purpose).trim();
+    if (!complaint) {
+      setError("Please provide a chief medical complaint.");
       return;
     }
 
@@ -139,13 +156,22 @@ export default function CheckInPage() {
     setError(null);
 
     try {
+      const vitalsPayload: any = {};
+      if (spO2.trim()) vitalsPayload.spO2 = Number(spO2.trim());
+      if (heartRate.trim()) vitalsPayload.heartRate = Number(heartRate.trim());
+      if (bloodPressure.trim()) vitalsPayload.bloodPressure = bloodPressure.trim();
+      if (age.trim()) vitalsPayload.age = Number(age.trim());
+      if (knownConditions.trim()) vitalsPayload.knownConditions = knownConditions.trim();
+
       const res = await fetch("/api/tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           queueId: selectedQueueId,
-          visitorName: visitorName.trim() || "Visitor",
-          purpose: purpose.trim() || "General Service",
+          visitorName: visitorName.trim() || "Patient",
+          purpose: complaint,
+          chiefComplaint: complaint,
+          vitalSigns: Object.keys(vitalsPayload).length > 0 ? vitalsPayload : undefined,
           turnstileToken: "bypass-dev-token",
           honeypot,
         }),
@@ -155,17 +181,17 @@ export default function CheckInPage() {
       try {
         data = await res.json();
       } catch (parseErr) {
-        throw new Error("Unable to create queue ticket. Please check your connection and try again.");
+        throw new Error("Unable to create clinical ticket. Please check your connection and try again.");
       }
 
       if (!res.ok || !data || !data.success) {
         throw new Error(data?.error || "Failed to create token. Please try again.");
       }
 
-      // Navigate to Visitor Mobile Pass
+      // Navigate to Patient Clinical Care Pass
       router.push(`/ticket/${data.token.id}`);
     } catch (err: any) {
-      setError(err.message || "Failed to join queue");
+      setError(err.message || "Failed to join clinical queue");
       setIsSubmitting(false);
     }
   };
@@ -173,11 +199,11 @@ export default function CheckInPage() {
   const getQueueIcon = (code: string) => {
     switch (code) {
       case "A":
-        return <Building className="w-5 h-5 text-emerald-400" />;
+        return <Activity className="w-5 h-5 text-emerald-400" />;
       case "B":
-        return <GraduationCap className="w-5 h-5 text-blue-400" />;
+        return <Users className="w-5 h-5 text-blue-400" />;
       case "C":
-        return <CreditCard className="w-5 h-5 text-amber-400" />;
+        return <Clock className="w-5 h-5 text-amber-400" />;
       default:
         return <Users className="w-5 h-5 text-zinc-400" />;
     }
@@ -194,13 +220,13 @@ export default function CheckInPage() {
             </Link>
           </div>
           <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-zinc-500">
-            Institutional Entry Portal
+            Emergency & Ambulatory Clinical Intake
           </span>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-mono font-bold tracking-tight text-white mt-1">
-            Visitor Digital Check-In
+            Patient Clinical Intake & Triage
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-xl">
-            Join the authoritative virtual queue. Receive a live mobile pass with dynamic position updates and audio call alerts.
+            Register for clinical care pathway assessment. Automated ESI v4 acuity scoring and dynamic wait tracking.
           </p>
         </div>
         <ConnectionBadge state={connectionState} />
@@ -209,13 +235,13 @@ export default function CheckInPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         {/* Left Column: AI Intent Triage & Join Form */}
         <div className="lg:col-span-7 space-y-6">
-          {/* AI Smart Department Routing */}
+          {/* AI Smart Clinical Routing */}
           <Panel
-            title="Intelligent Service Routing"
-            subtitle="Describe your request in natural language for automated department recommendation"
+            title="Clinical Symptom Classifier & Triage"
+            subtitle="Describe acute symptoms in natural language for automated ESI v4 acuity scoring and clinical pathway recommendation"
             badge={
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400">
-                <Sparkles className="w-3 h-3 text-emerald-400" /> COHERE AI
+                <Sparkles className="w-3 h-3 text-emerald-400" /> COHERE ESI v4
               </span>
             }
           >
@@ -223,10 +249,10 @@ export default function CheckInPage() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="E.g., I need my semester transcript and official grade stamp..."
+                  placeholder="E.g., Crushing central chest pain radiating to left jaw, severe shortness of breath..."
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
-                  className="w-full rounded border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
+                  className="w-full rounded border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none font-mono"
                 />
               </div>
 
@@ -238,7 +264,7 @@ export default function CheckInPage() {
                   isLoading={isAiTriaging}
                   icon={<Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
                 >
-                  Analyze & Recommend
+                  Analyze Clinical Acuity
                 </Button>
               </div>
             </form>
@@ -246,7 +272,7 @@ export default function CheckInPage() {
             {aiSuggestions.length > 0 && (
               <div className="mt-4 pt-3 border-t border-zinc-850 space-y-2">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
-                  Recommended Match:
+                  Recommended Clinical Pathway:
                 </span>
                 {aiSuggestions.slice(0, 1).map((sug, idx) => (
                   <div
@@ -269,7 +295,10 @@ export default function CheckInPage() {
           </Panel>
 
           {/* Main Join Queue Form */}
-          <Panel title="Issue Digital Token" subtitle="Select your target department to join the live queue">
+          <Panel
+            title="Patient Clinical Intake Form"
+            subtitle="Provide patient identification, chief medical complaint, and optional baseline vitals"
+          >
             {error && (
               <div className="mb-4 flex items-center gap-2 rounded border border-red-800/80 bg-red-950/40 p-3 text-xs text-red-300">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -292,7 +321,7 @@ export default function CheckInPage() {
               {/* Department Queue Selection */}
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-2">
-                  Target Service Queue *
+                  Target Clinical Pathway *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {queues.map((q) => {
@@ -329,32 +358,126 @@ export default function CheckInPage() {
                 </div>
               </div>
 
-              {/* Visitor Name */}
+              {/* Patient Name */}
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1">
-                  Visitor Full Name
+                  Patient Full Name
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Alice Miller"
+                  placeholder="e.g. Eleanor Vance"
                   value={visitorName}
                   onChange={(e) => setVisitorName(e.target.value)}
                   className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
                 />
               </div>
 
-              {/* Purpose of Visit */}
+              {/* Chief Medical Complaint */}
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1">
-                  Specific Request / Purpose
+                  Chief Medical Complaint *
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Transcript Verification / Scholarship Claim"
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
+                <textarea
+                  rows={3}
+                  placeholder="Describe your symptoms, e.g., pain location, duration, severity, onset..."
+                  value={chiefComplaint}
+                  onChange={(e) => {
+                    setChiefComplaint(e.target.value);
+                    setPurpose(e.target.value);
+                  }}
+                  className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none resize-none font-mono"
                 />
+              </div>
+
+              {/* Optional Basic Vitals Accordion / Inputs */}
+              <div className="border border-zinc-800 rounded-lg p-3 bg-zinc-950/60 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setShowVitals(!showVitals)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300">
+                      Baseline Vitals Assessment
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase">(Optional)</span>
+                  </div>
+                  {showVitals ? (
+                    <ChevronUp className="w-4 h-4 text-zinc-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-zinc-400" />
+                  )}
+                </button>
+
+                {showVitals && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-zinc-850">
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                        SpO2 (%)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 98"
+                        value={spO2}
+                        onChange={(e) => setSpO2(e.target.value)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 font-mono focus:border-zinc-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                        Pulse / HR (bpm)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 78"
+                        value={heartRate}
+                        onChange={(e) => setHeartRate(e.target.value)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 font-mono focus:border-zinc-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                        BP (mmHg)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 120/80"
+                        value={bloodPressure}
+                        onChange={(e) => setBloodPressure(e.target.value)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 font-mono focus:border-zinc-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                        Age (Years)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 45"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 font-mono focus:border-zinc-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-2 sm:col-span-4">
+                      <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                        Known Conditions / Comorbidities
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CAD, COPD, Type-2 Diabetes, Hypertension"
+                        value={knownConditions}
+                        onChange={(e) => setKnownConditions(e.target.value)}
+                        className="w-full rounded border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 font-mono focus:border-zinc-600 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2">
@@ -362,11 +485,11 @@ export default function CheckInPage() {
                   type="submit"
                   variant="primary"
                   size="lg"
-                  className="w-full"
+                  className="w-full font-mono font-bold"
                   isLoading={isSubmitting}
                   icon={<ArrowRight className="w-4 h-4" />}
                 >
-                  Generate Live Queue Token
+                  Submit Intake & Generate Care Pass
                 </Button>
               </div>
             </form>
@@ -378,27 +501,27 @@ export default function CheckInPage() {
           {/* Physical QR Scan Emulation with Real Scannable QRCode Canvas */}
           <Panel
             title="Physical Kiosk QR Code"
-            subtitle="Scan with mobile camera to open live virtual queue on phone"
+            subtitle="Scan with mobile camera to open live clinical intake on phone"
           >
             <div className="flex flex-col items-center justify-center p-4 text-center">
               <QRCodeDisplay value={currentUrl} size={190} className="mb-3" />
               <div className="flex items-center gap-1.5 text-xs font-mono text-emerald-400 font-semibold mt-1">
                 <Smartphone className="w-3.5 h-3.5" />
-                <span>Scannable Live Portal</span>
+                <span>Scannable Clinical Portal</span>
               </div>
               <span className="text-[11px] font-mono text-zinc-500 mt-1 max-w-xs break-all">
                 {currentUrl}
               </span>
               <span className="text-[10px] text-zinc-500 mt-2">
-                Point any mobile camera to instantly join without physical line
+                Point any mobile camera to complete intake without waiting at reception
               </span>
             </div>
           </Panel>
 
           {/* Quick Demo Passes Jump */}
           <Panel
-            title="Benchmark Demo Passes"
-            subtitle="Instant access to test visitor passes"
+            title="Active Clinical Care Passes"
+            subtitle="Instant access to test patient clinical passes"
           >
             <div className="space-y-2">
               {queues
@@ -417,7 +540,7 @@ export default function CheckInPage() {
                       <div>
                         <span className="text-xs text-zinc-200 block">{token.visitorName}</span>
                         <span className="text-[10px] text-zinc-500 font-mono">
-                          {token.purpose}
+                          {token.chiefComplaint || token.purpose}
                         </span>
                       </div>
                     </div>

@@ -18,11 +18,50 @@ import { QueueEventPayload } from "@/lib/realtime/events";
 interface ServingCall {
   tokenId: string;
   displayNumber: string;
+  patientName?: string;
   counterNumber: number;
   counterName: string;
   queueName: string;
   calledAt: string;
 }
+
+// Healthcare Privacy Compliance (HIPAA / NDHM) De-identification Helper
+export const formatDeidentifiedPatient = (displayNumber: string, patientName?: string) => {
+  if (!patientName || patientName.trim() === "" || patientName.toLowerCase().includes("patient")) {
+    return displayNumber;
+  }
+  const parts = patientName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return displayNumber;
+  const initials = parts.map((p) => p[0]?.toUpperCase() + ".").join(" ");
+  return `${displayNumber} (${initials})`;
+};
+
+// Clinical Station Mapping
+export const formatClinicalStationName = (counterNumber: number, fallbackName: string) => {
+  switch (counterNumber) {
+    case 1:
+      return "Triage Desk";
+    case 2:
+      return "Doctor Cabin 1";
+    case 3:
+      return "Doctor Cabin 2";
+    case 4:
+      return "Phlebotomy Lab";
+    case 5:
+      return "Radiology Imaging";
+    case 6:
+      return "Central Pharmacy";
+    default:
+      return fallbackName.replace(/Counter\s*/i, "Station ");
+  }
+};
+
+// Speech synthesis helper formatted for clinical announcements: "Patient P T 104, please proceed to Doctor Cabin 2."
+export const formatClinicalSpeechAnnouncement = (displayNumber: string, stationName: string) => {
+  // Format letters with spaces for clear vocalization: "PT-104" -> "P T 104"
+  const vocalToken = displayNumber.replace(/-/g, " ").replace(/([A-Za-z])/g, "$1 ");
+  return `Patient ${vocalToken}, please proceed to ${stationName}.`;
+};
 
 export default function PublicDisplayPage() {
   const [currentCall, setCurrentCall] = useState<ServingCall | null>(null);
@@ -93,9 +132,10 @@ export default function PublicDisplayPage() {
           callFound = {
             tokenId: latest.currentServingToken.id,
             displayNumber: latest.currentServingToken.displayNumber,
+            patientName: latest.currentServingToken.visitorName || latest.currentServingToken.patientName,
             counterNumber: latest.number,
-            counterName: latest.name,
-            queueName: latest.queue?.name || "Service",
+            counterName: formatClinicalStationName(latest.number, latest.name),
+            queueName: latest.queue?.name || "Clinical Pathway",
             calledAt: latest.currentServingToken.calledAt || new Date().toISOString(),
           };
         }
@@ -103,12 +143,15 @@ export default function PublicDisplayPage() {
 
       if (!callFound && tRes.status === "fulfilled" && tRes.value.success && tRes.value.tokens?.length > 0) {
         const latestToken = tRes.value.tokens[0];
+        const counterNum = latestToken.counter?.number || 1;
+        const rawName = latestToken.counter?.name || "Station 01";
         callFound = {
           tokenId: latestToken.id,
           displayNumber: latestToken.displayNumber,
-          counterNumber: latestToken.counter?.number || 1,
-          counterName: latestToken.counter?.name || "Counter 01",
-          queueName: latestToken.queue?.name || "Service",
+          patientName: latestToken.visitorName || latestToken.patientName,
+          counterNumber: counterNum,
+          counterName: formatClinicalStationName(counterNum, rawName),
+          queueName: latestToken.queue?.name || "Clinical Pathway",
           calledAt: latestToken.calledAt || new Date().toISOString(),
         };
       }
@@ -133,24 +176,24 @@ export default function PublicDisplayPage() {
   const handleRealtimeEvent = useCallback(
     (event: QueueEventPayload) => {
       if (event.type === "TOKEN_CALLED" || event.type === "TOKEN_RECALLED") {
-        const { token, counter, announcement } = event.data;
+        const { token, counter } = event.data;
         if (token && counter) {
+          const stationName = formatClinicalStationName(counter.number, counter.name);
           const newCall: ServingCall = {
             tokenId: token.id,
             displayNumber: token.displayNumber,
+            patientName: token.visitorName || token.patientName,
             counterNumber: counter.number,
-            counterName: counter.name,
-            queueName: token.queueName || "Service",
+            counterName: stationName,
+            queueName: token.queueName || "Clinical Pathway",
             calledAt: new Date().toISOString(),
           };
 
           setCurrentCall(newCall);
           setRecentCalls((prev) => [newCall, ...prev.filter((c) => c.displayNumber !== token.displayNumber).slice(0, 5)]);
 
-          // Trigger speech announcement
-          const speechText =
-            announcement ||
-            `Token ${token.displayNumber}, please proceed to ${counter.name}.`;
+          // Trigger clinical speech announcement: "Patient P T 104, please proceed to Doctor Cabin 2."
+          const speechText = formatClinicalSpeechAnnouncement(token.displayNumber, stationName);
           announceCall(speechText, event.id);
         }
       } else {
@@ -188,10 +231,10 @@ export default function PublicDisplayPage() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-mono font-extrabold tracking-wider text-white">
-              CAMPUS SERVICE HUB
+              CLINICAL FLOW DISPLAY
             </h1>
             <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
-              Institutional Public Queue Display
+              Emergency & Outpatient Care Stream • HIPAA / NDHM Protected
             </span>
           </div>
         </div>
@@ -242,21 +285,28 @@ export default function PublicDisplayPage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
               </span>
-              NOW SERVING
+              NOW CALLING / SERVING
             </div>
 
             {currentCall ? (
               <div className="space-y-6 w-full">
-                {/* Hero Token Display Number */}
-                <div className="font-mono text-7xl sm:text-9xl font-black text-white tracking-widest tabular-nums leading-none">
-                  {currentCall.displayNumber}
+                {/* Hero Token Display Number & De-identified Patient */}
+                <div>
+                  <div className="font-mono text-7xl sm:text-9xl font-black text-white tracking-widest tabular-nums leading-none">
+                    {currentCall.displayNumber}
+                  </div>
+                  {currentCall.patientName && (
+                    <div className="text-sm sm:text-base font-mono font-medium text-zinc-400 mt-3">
+                      Patient: {formatDeidentifiedPatient(currentCall.displayNumber, currentCall.patientName)}
+                    </div>
+                  )}
                 </div>
 
                 {/* Counter & Proceed Instruction */}
                 <div className="pt-6 border-t border-zinc-850 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
                   <div>
                     <span className="text-xs font-mono uppercase tracking-widest text-zinc-500 block">
-                      PROCEED TO
+                      PROCEED TO STATION
                     </span>
                     <span className="font-mono text-3xl sm:text-4xl font-extrabold text-emerald-400 tracking-wider">
                       {currentCall.counterName}
@@ -267,7 +317,7 @@ export default function PublicDisplayPage() {
 
                   <div>
                     <span className="text-xs font-mono uppercase tracking-widest text-zinc-500 block">
-                      SERVICE DEPARTMENT
+                      CLINICAL PATHWAY
                     </span>
                     <span className="text-sm font-mono text-zinc-300 font-semibold">
                       {currentCall.queueName}
@@ -282,7 +332,7 @@ export default function PublicDisplayPage() {
                   Waiting for Next Call
                 </span>
                 <span className="text-sm font-mono text-zinc-600">
-                  Counters will announce tokens shortly.
+                  Clinical stations will announce patient tokens shortly.
                 </span>
               </div>
             )}
@@ -297,7 +347,7 @@ export default function PublicDisplayPage() {
                 Recent Calls
               </span>
               <span className="text-[10px] font-mono text-zinc-500 uppercase">
-                Past Calls Ledger
+                Clinical Routing Ledger
               </span>
             </div>
 
@@ -308,9 +358,11 @@ export default function PublicDisplayPage() {
                     key={idx}
                     className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/60 font-mono"
                   >
-                    <span className="text-xl font-bold text-zinc-200 tracking-wider">
-                      {call.displayNumber}
-                    </span>
+                    <div>
+                      <span className="text-base font-bold text-zinc-200 tracking-wider block">
+                        {formatDeidentifiedPatient(call.displayNumber, call.patientName)}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2 text-right">
                       <span className="text-xs font-semibold text-emerald-400">
                         {call.counterName}
@@ -339,8 +391,8 @@ export default function PublicDisplayPage() {
 
       {/* Footer System Ticker */}
       <div className="border-t border-zinc-900 pt-4 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-zinc-500 gap-2">
-        <span>Please have your Digital Token Mobile Pass or ticket reference ready upon approach.</span>
-        <span>Physical Queue Sync Engine • Live Realtime Broadcast</span>
+        <span>Please have your Patient Clinical Care Pass or token reference ready upon approach.</span>
+        <span>Clinical Flow Realtime Broadcast • De-identified Patient Stream</span>
       </div>
     </div>
   );
