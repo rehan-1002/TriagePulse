@@ -160,10 +160,6 @@ export default function LandingPage() {
 
         {/* Narrative Stage 4: TriagePulse MAIN SOLUTION COCKPIT */}
         <div ref={heroRef} className="absolute z-20 flex flex-col items-center text-center px-4 max-w-4xl -translate-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider mb-5 shadow-sm backdrop-blur-md">
-            <Zap className="w-3.5 h-3.5 text-emerald-500 animate-pulse" /> Clinical OPD Intelligence • ESI 1–5 Triage
-          </div>
-          
           <h1 className="text-7xl sm:text-8xl md:text-9xl font-black font-mono tracking-tight uppercase text-zinc-950 dark:text-white leading-[0.88]">
             Triage<span className="text-emerald-600 dark:text-emerald-400">Pulse</span>
           </h1>
