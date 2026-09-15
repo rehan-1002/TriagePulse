@@ -70,32 +70,11 @@ export default function LandingPage() {
       <div ref={containerRef} className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         
         {/* Exact Skiper39 Crowd Canvas Background */}
-        <div className="absolute inset-0 pointer-events-none opacity-50 z-0">
+        <div className="absolute inset-0 pointer-events-none opacity-20 dark:opacity-50 z-0">
           <CrowdCanvas src="/images/peeps/all-peeps.png" rows={15} cols={7} />
-          {/* Subtle vignette gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
+          {/* Crisp, clean vignette gradient - luminous pure white in light mode, deep zinc in dark mode */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/85 to-white/30 dark:from-zinc-950 dark:via-zinc-950/70 dark:to-transparent" />
         </div>
-
-        {/* Floating Top Navigation Brand Indicator */}
-        <header className="absolute top-6 left-6 right-6 flex justify-between items-center z-30 font-mono text-xs uppercase tracking-widest text-zinc-400">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-zinc-100 font-bold tracking-tight">TriagePulse // Clinical OPD Engine</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/join">
-              <Button variant="outline" size="sm" className="h-8 border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-[11px]">
-                <UserCheck className="w-3.5 h-3.5 mr-1.5" /> Patient Intake
-              </Button>
-            </Link>
-            <Link href="/counter">
-              <Button variant="outline" size="sm" className="h-8 border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-[11px]">
-                <Monitor className="w-3.5 h-3.5 mr-1.5" /> Doctor Cabin
-              </Button>
-            </Link>
-            <ThemeToggle />
-          </div>
-        </header>
 
         {/* Narrative Stage 1: QUEUING SINCE DAWN? */}
         <div ref={text1Ref} className="absolute z-10 flex flex-col items-center text-center px-4 max-w-4xl">

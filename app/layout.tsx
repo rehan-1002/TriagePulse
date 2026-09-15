@@ -97,7 +97,7 @@ export default function RootLayout({
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 w-full">
           {children}
         </main>
 

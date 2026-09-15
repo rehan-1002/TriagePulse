@@ -64,8 +64,8 @@ html.light {
 }
 
 html.light body {
-  background: #f8fafc !important;
-  color: #0f172a !important;
+  background: #ffffff !important;
+  color: #09090b !important;
 }
 
 html.light .bg-zinc-950 {
@@ -73,20 +73,23 @@ html.light .bg-zinc-950 {
 }
 
 html.light .bg-zinc-900 {
-  background-color: #f1f5f9 !important;
+  background-color: #f8fafc !important;
 }
 
 html.light .bg-zinc-900\/90,
 html.light .bg-zinc-900\/80,
+html.light .bg-zinc-900\/70,
 html.light .bg-zinc-900\/60,
 html.light .bg-zinc-900\/40,
 html.light .bg-zinc-950\/90 {
-  background-color: rgba(248, 250, 252, 0.92) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px);
 }
 
+/* Crisp High-Contrast Typography */
 html.light .text-white,
 html.light .text-zinc-100 {
-  color: #0f172a !important;
+  color: #09090b !important;
 }
 
 html.light .text-zinc-200 {
@@ -97,11 +100,15 @@ html.light .text-zinc-300 {
   color: #334155 !important;
 }
 
-html.light .text-zinc-400,
+html.light .text-zinc-400 {
+  color: #475569 !important;
+}
+
 html.light .text-zinc-500 {
   color: #64748b !important;
 }
 
+/* Clean Borders */
 html.light .border-zinc-800,
 html.light .border-zinc-800\/80,
 html.light .border-zinc-800\/60,
@@ -110,12 +117,58 @@ html.light .border-zinc-900 {
   border-color: #e2e8f0 !important;
 }
 
+/* Primary Button in Light Mode */
+html.light button.bg-white,
+html.light .bg-white {
+  background-color: #09090b !important;
+  color: #ffffff !important;
+  border-color: #09090b !important;
+}
+html.light button.bg-white:hover {
+  background-color: #27272a !important;
+}
+
+/* Outline Buttons in Light Mode */
+html.light button.border-zinc-800,
+html.light a button.border-zinc-800 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+html.light button.border-zinc-800:hover,
+html.light a button.border-zinc-800:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+/* Stage Badges */
+html.light .border-zinc-800.bg-zinc-900\/80 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+html.light .border-emerald-800\/50.bg-emerald-950\/20 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #059669 !important;
+}
+
+html.light .border-red-900\/50.bg-red-950\/20 {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+
 html.light header {
-  background-color: rgba(255, 255, 255, 0.88) !important;
+  background-color: rgba(255, 255, 255, 0.94) !important;
   border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
 html.light footer {
+  background-color: #f8fafc !important;
   border-color: #e2e8f0 !important;
 }
 
