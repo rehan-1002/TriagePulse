@@ -8,6 +8,7 @@ import { ArrowRight, ShieldCheck, Zap, Monitor, LayoutDashboard, UserCheck } fro
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { CrowdCanvas } from "@/components/ui/skiper-ui/skiper39";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 // Register GSAP Plugin
 if (typeof window !== "undefined") {
@@ -92,6 +93,7 @@ export default function LandingPage() {
                 <Monitor className="w-3.5 h-3.5 mr-1.5" /> Doctor Cabin
               </Button>
             </Link>
+            <ThemeToggle />
           </div>
         </header>
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { Activity, Tv, Monitor, ShieldCheck, UserCheck } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "TriagePulse | Dynamic OPD Wait-Time & Clinical Triage Engine",
@@ -15,7 +16,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('theme');
+                if (theme === 'light') {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.classList.add('light');
+                } else {
+                  document.documentElement.classList.remove('light');
+                  document.documentElement.classList.add('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white">
         {/* Global Operational Top Bar */}
         <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-md px-4 py-2.5">
@@ -69,6 +88,10 @@ export default function RootLayout({
                 <Tv className="w-3.5 h-3.5" />
                 <span>OPD Signage TV</span>
               </Link>
+
+              <div className="ml-1 pl-1.5 border-l border-zinc-800">
+                <ThemeToggle />
+              </div>
             </nav>
           </div>
         </header>
