@@ -38,26 +38,30 @@ export default function LandingPage() {
         },
       });
 
-      // Initial States
-      gsap.set([text1Ref.current, text2Ref.current, text3Ref.current, heroRef.current], {
+      // Initial States: Stage 1 is immediately visible on landing
+      gsap.set(text1Ref.current, {
+        opacity: 1,
+        y: 0,
+        filter: "blur(0px)",
+      });
+      gsap.set([text2Ref.current, text3Ref.current, heroRef.current], {
         opacity: 0,
         y: 40,
         filter: "blur(8px)",
       });
 
-      // Stage 1: "TOO MUCH CROWD?" (0% - 25%)
-      tl.to(text1Ref.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1 })
-        .to(text1Ref.current, { opacity: 0, y: -40, filter: "blur(8px)", duration: 1 }, "+=0.8");
+      // Stage 1: "QUEUING SINCE DAWN?" holds briefly, then transitions out
+      tl.to(text1Ref.current, { opacity: 0, y: -40, filter: "blur(8px)", duration: 1 }, "+=0.3");
 
-      // Stage 2: "CHAOTIC MANAGEMENT?" (25% - 50%)
+      // Stage 2: "EMERGENCIES STRIKE MID-MORNING." (25% - 50%)
       tl.to(text2Ref.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1 })
-        .to(text2Ref.current, { opacity: 0, y: -40, filter: "blur(8px)", duration: 1 }, "+=0.8");
+        .to(text2Ref.current, { opacity: 0, y: -40, filter: "blur(8px)", duration: 1 }, "+=0.6");
 
-      // Stage 3: "DON'T WORRY. WE GOT YOU." (50% - 75%)
+      // Stage 3: "RE-FORECAST LIVE. ARRIVE JUST IN TIME." (50% - 75%)
       tl.to(text3Ref.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1 })
-        .to(text3Ref.current, { opacity: 0, y: -40, filter: "blur(8px)", duration: 1 }, "+=0.8");
+        .to(text3Ref.current, { opacity: 0, y: -40, filter: "blur(8px)", duration: 1 }, "+=0.6");
 
-      // Stage 4: LiveQueue Final Hero (75% - 100%)
+      // Stage 4: TriagePulse Final Hero Cockpit (75% - 100%)
       tl.to(heroRef.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.2 });
     }, containerRef);
 
