@@ -66,7 +66,7 @@ interface WaitingToken {
   queueName?: string;
 }
 
-export const getStationInfo = (counterNumber: number, fallbackName: string) => {
+const getStationInfo = (counterNumber: number, fallbackName: string) => {
   switch (counterNumber) {
     case 1:
       return { title: "Station 1: Triage Desk", role: "Nurse Intake & Vitals Assessment" };
@@ -85,7 +85,7 @@ export const getStationInfo = (counterNumber: number, fallbackName: string) => {
   }
 };
 
-export const renderEsiBadge = (level?: string) => {
+const renderEsiBadge = (level?: string) => {
   switch (level) {
     case "LEVEL_1_RESUSCITATION":
       return (

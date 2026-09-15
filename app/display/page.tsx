@@ -26,7 +26,7 @@ interface ServingCall {
 }
 
 // Healthcare Privacy Compliance (HIPAA / NDHM) De-identification Helper
-export const formatDeidentifiedPatient = (displayNumber: string, patientName?: string) => {
+const formatDeidentifiedPatient = (displayNumber: string, patientName?: string) => {
   if (!patientName || patientName.trim() === "" || patientName.toLowerCase().includes("patient")) {
     return displayNumber;
   }
@@ -37,7 +37,7 @@ export const formatDeidentifiedPatient = (displayNumber: string, patientName?: s
 };
 
 // Clinical Station Mapping
-export const formatClinicalStationName = (counterNumber: number, fallbackName: string) => {
+const formatClinicalStationName = (counterNumber: number, fallbackName: string) => {
   switch (counterNumber) {
     case 1:
       return "Triage Desk";
@@ -57,7 +57,7 @@ export const formatClinicalStationName = (counterNumber: number, fallbackName: s
 };
 
 // Speech synthesis helper formatted for clinical announcements: "Patient P T 104, please proceed to Doctor Cabin 2."
-export const formatClinicalSpeechAnnouncement = (displayNumber: string, stationName: string) => {
+const formatClinicalSpeechAnnouncement = (displayNumber: string, stationName: string) => {
   // Format letters with spaces for clear vocalization: "PT-104" -> "P T 104"
   const vocalToken = displayNumber.replace(/-/g, " ").replace(/([A-Za-z])/g, "$1 ");
   return `Patient ${vocalToken}, please proceed to ${stationName}.`;
