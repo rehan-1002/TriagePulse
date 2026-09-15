@@ -85,7 +85,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
 
   if (!mounted) {
     return (
-      <div className={`w-8 h-8 rounded border border-zinc-800 bg-zinc-900/60 ${className}`} />
+      <div className={`h-8 w-16 rounded border border-zinc-800 bg-zinc-900/60 animate-pulse ${className}`} />
     );
   }
 
@@ -96,16 +96,22 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       type="button"
       aria-label="Toggle theme"
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-      className={`relative flex items-center justify-center w-8 h-8 rounded border transition-all duration-200 cursor-pointer ${
+      className={`relative flex items-center gap-1.5 px-2.5 h-8 rounded border text-xs font-mono transition-all duration-200 cursor-pointer select-none ${
         theme === "dark"
-          ? "border-zinc-800 bg-zinc-900/80 text-zinc-300 hover:text-amber-400 hover:border-zinc-700 hover:bg-zinc-800"
-          : "border-zinc-300 bg-white text-zinc-700 hover:text-indigo-600 hover:border-zinc-400 hover:bg-zinc-50 shadow-sm"
+          ? "border-amber-500/40 bg-zinc-900/90 text-amber-400 hover:border-amber-400 hover:bg-zinc-800 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+          : "border-indigo-400/50 bg-white text-indigo-600 hover:border-indigo-600 hover:bg-zinc-50 shadow-sm"
       } ${className}`}
     >
       {theme === "dark" ? (
-        <Sun className="w-4 h-4 transition-transform duration-300 hover:rotate-45" />
+        <>
+          <Sun className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-[11px] font-semibold text-zinc-200">Light</span>
+        </>
       ) : (
-        <Moon className="w-4 h-4 transition-transform duration-300 hover:-rotate-12" />
+        <>
+          <Moon className="w-3.5 h-3.5 text-indigo-600" />
+          <span className="text-[11px] font-semibold text-zinc-800">Dark</span>
+        </>
       )}
     </button>
   );
