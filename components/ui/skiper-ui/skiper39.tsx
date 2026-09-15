@@ -258,18 +258,21 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7, className }: CrowdCanvasProps) 
       initCrowd();
     };
 
+    let initialized = false;
     const init = () => {
+      if (initialized) return;
+      if (!img.naturalWidth || !img.naturalHeight) return;
+      initialized = true;
       createPeeps();
       resize();
       gsap.ticker.add(render);
     };
 
-    if (img.complete) {
-      init();
-    } else {
-      img.onload = init;
-    }
+    img.onload = init;
     img.src = config.src;
+    if (img.complete && img.naturalWidth > 0) {
+      init();
+    }
 
     const handleResize = () => resize();
     window.addEventListener("resize", handleResize);
@@ -281,7 +284,7 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7, className }: CrowdCanvasProps) 
         if (peep.walk) peep.walk.kill();
       });
     };
-  }, []);
+  }, [src, rows, cols]);
   return (
     <canvas ref={canvasRef} className={className || "absolute bottom-0 h-[90vh] w-full"} />
   );
