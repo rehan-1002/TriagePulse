@@ -79,109 +79,117 @@ export default function LandingPage() {
         <header className="absolute top-6 left-6 right-6 flex justify-between items-center z-30 font-mono text-xs uppercase tracking-widest text-zinc-400">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-zinc-100 font-bold tracking-tight">LiveQueue // Engine</span>
+            <span className="text-zinc-100 font-bold tracking-tight">TriagePulse // Clinical OPD Engine</span>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/join">
               <Button variant="outline" size="sm" className="h-8 border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-[11px]">
-                <UserCheck className="w-3.5 h-3.5 mr-1.5" /> Check-In
+                <UserCheck className="w-3.5 h-3.5 mr-1.5" /> Patient Intake
               </Button>
             </Link>
-            <Link href="/admin">
+            <Link href="/counter">
               <Button variant="outline" size="sm" className="h-8 border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-[11px]">
-                <LayoutDashboard className="w-3.5 h-3.5 mr-1.5" /> Staff Console
+                <Monitor className="w-3.5 h-3.5 mr-1.5" /> Doctor Cabin
               </Button>
             </Link>
           </div>
         </header>
 
-        {/* Narrative Stage 1: TOO MUCH CROWD? */}
+        {/* Narrative Stage 1: QUEUING SINCE DAWN? */}
         <div ref={text1Ref} className="absolute z-10 flex flex-col items-center text-center px-4 max-w-4xl">
           <Badge variant="outline" className="font-mono text-xs uppercase border-zinc-800 text-zinc-400 mb-4 px-3 py-1 bg-zinc-900/80">
-            Stage 01 • Footfall Influx
+            Stage 01 • The Unseen Waitlist
           </Badge>
           <h1 className="text-6xl md:text-8xl font-black font-mono tracking-tighter uppercase text-white">
-            Too Much Crowd?
+            Queuing Since Dawn?
           </h1>
-          <p className="mt-4 text-zinc-400 font-mono text-sm md:text-base max-w-lg">
-            Waiting lobbies overflowing, corridors clogged, and zero visibility into physical visitor bottlenecks.
+          <p className="mt-4 text-zinc-400 font-mono text-sm md:text-base max-w-xl">
+            Packed hospital corridors, paper tokens, and patients waiting 6+ hours with zero visibility into when their doctor will actually see them.
           </p>
         </div>
 
-        {/* Narrative Stage 2: HARD MANAGEMENT? */}
+        {/* Narrative Stage 2: EMERGENCIES SHATTER ESTIMATES */}
         <div ref={text2Ref} className="absolute z-10 flex flex-col items-center text-center px-4 max-w-4xl">
           <Badge variant="outline" className="font-mono text-xs uppercase border-red-900/50 text-red-400 mb-4 px-3 py-1 bg-red-950/20">
-            Stage 02 • Operational Friction
+            Stage 02 • The Dynamic Twist
           </Badge>
-          <h1 className="text-6xl md:text-8xl font-black font-mono tracking-tighter uppercase text-red-500">
-            Chaotic Lines?
+          <h1 className="text-5xl md:text-7xl font-black font-mono tracking-tighter uppercase text-red-500">
+            Emergencies Strike Mid-Morning.
           </h1>
-          <p className="mt-4 text-zinc-400 font-mono text-sm md:text-base max-w-lg">
-            Manual paper tokens, frustrated visitors, counter imbalances, and unpredictable service delays.
+          <p className="mt-4 text-zinc-400 font-mono text-sm md:text-base max-w-xl">
+            Acute trauma and cardiac walk-ins legitimately jump the queue — destroying static linear predictions and compounding blind delays for everyone else.
           </p>
         </div>
 
-        {/* Narrative Stage 3: DON'T WORRY. WE GOT YOU. */}
+        {/* Narrative Stage 3: RE-FORECAST LIVE */}
         <div ref={text3Ref} className="absolute z-10 flex flex-col items-center text-center px-4 max-w-4xl">
           <Badge variant="outline" className="font-mono text-xs uppercase border-emerald-800/50 text-emerald-400 mb-4 px-3 py-1 bg-emerald-950/20">
-            Stage 03 • Zero-Hardware Orchestration
+            Stage 03 • Acuity-Aware AI Orchestration
           </Badge>
           <h1 className="text-5xl md:text-7xl font-black font-mono tracking-tighter uppercase text-emerald-400">
-            Don&apos;t Worry.<br />We Got You.
+            Re-Forecast Live.<br />Arrive Just In Time.
           </h1>
-          <p className="mt-4 text-zinc-300 font-mono text-sm md:text-base max-w-lg">
-            Dynamic AI wait predictions, real-time WebSocket re-indexing, and instant zero-install virtual passes.
+          <p className="mt-4 text-zinc-300 font-mono text-sm md:text-base max-w-xl">
+            Continuous dynamic wait-time calculation based on ESI 1–5 triage. Real-time updates delivered even to basic phones so patients arrive when called, not at dawn.
           </p>
         </div>
 
-        {/* Narrative Stage 4: LiveQueue HERO COCKPIT */}
+        {/* Narrative Stage 4: TriagePulse HERO COCKPIT */}
         <div ref={heroRef} className="absolute z-20 flex flex-col items-center text-center px-4 max-w-4xl">
           <Badge variant="outline" className="font-mono text-xs uppercase border-zinc-700 text-zinc-300 mb-4 px-3 py-1 bg-zinc-900/90 shadow-xl">
-            <Zap className="w-3.5 h-3.5 text-emerald-400 mr-1.5" /> Next-Gen AI Queue Management
+            <Zap className="w-3.5 h-3.5 text-emerald-400 mr-1.5" /> Clinical OPD Intelligence • ESI 1–5 Triage
           </Badge>
           
           <h1 className="text-6xl md:text-8xl font-black font-mono tracking-tight uppercase text-white">
-            Live<span className="text-emerald-400">Queue</span>
+            Triage<span className="text-emerald-400">Pulse</span>
           </h1>
 
           <p className="mt-3 text-zinc-400 font-mono text-xs md:text-sm tracking-widest uppercase">
-            Automated Real-Time Crowd & Queue Orchestration
+            Dynamic Hospital OPD Token & Emergency Re-Forecasting Engine
           </p>
 
           <p className="mt-4 text-zinc-400 text-sm md:text-base max-w-xl font-sans">
-            Sub-second token re-indexing, emergency triage priority overrides, and seamless multi-department routing for hospitals, banks, colleges, and service hubs.
+            Empowering government hospitals to replace paper blindness with live acuity-adjusted arrival predictions, instant emergency preemption, and anti-starvation safeguards.
           </p>
 
           {/* Action Hub */}
           <div className="mt-8 flex flex-wrap gap-3 justify-center items-center">
             <Link href="/join">
               <Button className="h-12 px-6 bg-white hover:bg-zinc-200 text-zinc-950 font-mono text-xs font-bold uppercase tracking-wider transition-all">
-                Join Virtual Queue <ArrowRight className="w-4 h-4 ml-2" />
+                Get Patient Token <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
 
-            <Link href="/admin">
+            <Link href="/counter">
               <Button variant="outline" className="h-12 px-6 border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-100 font-mono text-xs uppercase tracking-wider">
-                <LayoutDashboard className="w-4 h-4 mr-2 text-zinc-400" /> Admin Console
+                <Monitor className="w-4 h-4 mr-2 text-zinc-400" /> Doctor Cabin
               </Button>
             </Link>
 
             <Link href="/display">
               <Button variant="outline" className="h-12 px-6 border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-mono text-xs uppercase tracking-wider">
-                <Monitor className="w-4 h-4 mr-2" /> Signage Board
+                <Monitor className="w-4 h-4 mr-2" /> OPD Signage TV
+              </Button>
+            </Link>
+
+            <Link href="/admin">
+              <Button variant="outline" className="h-12 px-6 border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-mono text-xs uppercase tracking-wider">
+                <LayoutDashboard className="w-4 h-4 mr-2 text-zinc-400" /> Clinical Admin
               </Button>
             </Link>
           </div>
 
           {/* Micro Footer Spec */}
-          <div className="mt-12 flex items-center gap-6 text-[11px] font-mono text-zinc-500 uppercase tracking-widest">
+          <div className="mt-12 flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-[11px] font-mono text-zinc-500 uppercase tracking-widest">
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" /> OWASP Protected
+              <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" /> ESI 1–5 Acuity
             </span>
             <span>•</span>
-            <span>WebSocket Sync</span>
+            <span>Live Emergency Preemption</span>
             <span>•</span>
-            <span>Zero App Install</span>
+            <span>Basic Phone / SMS Ready</span>
+            <span>•</span>
+            <span>Anti-Starvation Guard</span>
           </div>
         </div>
 

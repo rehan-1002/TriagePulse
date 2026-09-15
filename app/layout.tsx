@@ -4,9 +4,9 @@ import "./globals.css";
 import { Activity, Tv, Monitor, ShieldCheck, UserCheck } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "LiveQueue | Real-Time Institutional Queue & Crowd Platform",
+  title: "TriagePulse | Dynamic OPD Wait-Time & Clinical Triage Engine",
   description:
-    "Authoritative real-time virtual queue and crowd-management platform for physical institutions.",
+    "Real-time acuity-aware hospital OPD token and wait-time re-forecasting platform for patients and clinicians.",
 };
 
 export default function RootLayout({
@@ -27,10 +27,10 @@ export default function RootLayout({
                 </div>
                 <div>
                   <span className="font-mono text-sm font-bold tracking-wider text-white">
-                    LIVEQUEUE
+                    TRIAGEPULSE
                   </span>
                   <span className="text-[10px] font-mono text-zinc-500 ml-1.5 uppercase hidden sm:inline">
-                    OS v2.4
+                    Clinical OS v2.4
                   </span>
                 </div>
               </Link>
@@ -39,11 +39,11 @@ export default function RootLayout({
             {/* Navigation Tabs */}
             <nav className="flex items-center gap-1 sm:gap-2">
               <Link
-                href="/"
+                href="/join"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
               >
                 <UserCheck className="w-3.5 h-3.5" />
-                <span>Check-in</span>
+                <span>Patient Intake</span>
               </Link>
 
               <Link
@@ -51,7 +51,7 @@ export default function RootLayout({
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
               >
                 <Monitor className="w-3.5 h-3.5" />
-                <span>Counter</span>
+                <span>Doctor Cabin</span>
               </Link>
 
               <Link
@@ -59,7 +59,7 @@ export default function RootLayout({
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin</span>
+                <span>Clinical Admin</span>
               </Link>
 
               <Link
@@ -67,7 +67,7 @@ export default function RootLayout({
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 border border-emerald-900/50 hover:border-emerald-700/80 transition-colors"
               >
                 <Tv className="w-3.5 h-3.5" />
-                <span>Display TV</span>
+                <span>OPD Signage TV</span>
               </Link>
             </nav>
           </div>
@@ -81,8 +81,8 @@ export default function RootLayout({
         {/* Global Footer Meta */}
         <footer className="border-t border-zinc-900 py-4 px-6 text-center text-xs font-mono text-zinc-600">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-            <span>Authoritative Queue Engine • PostgreSQL + Prisma + SSE Stream</span>
-            <span>Real-Time Institutional Synchronization</span>
+            <span>TriagePulse Clinical Engine • Acuity-Time Hybrid Priority (ESI 1–5)</span>
+            <span>Live Emergency Re-Forecasting • Zero-Install Web & Basic Phone Ready</span>
           </div>
         </footer>
       </body>
