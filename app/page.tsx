@@ -70,12 +70,13 @@ export default function LandingPage() {
       <div ref={containerRef} className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         
         {/* Exact Skiper39 Crowd Canvas Background */}
-        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-          <div className="absolute inset-0 opacity-25 dark:opacity-45 mix-blend-multiply dark:mix-blend-screen transition-opacity duration-300">
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-white dark:bg-zinc-950 transition-colors duration-300">
+          {/* Light: black outlines on pure white. Dark: inverted white outlines on black. */}
+          <div className="absolute inset-0 dark:invert opacity-70 dark:opacity-75 transition-all duration-300">
             <CrowdCanvas src="/images/peeps/all-peeps.png" rows={15} cols={7} />
           </div>
-          {/* Crisp adaptive vignette gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-zinc-950 dark:via-zinc-950/70 dark:to-transparent transition-colors duration-300" />
+          {/* Luminous overlay without any grey mud */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/50 to-white/10 dark:from-zinc-950/95 dark:via-zinc-950/60 dark:to-zinc-950/20 pointer-events-none transition-colors duration-300" />
         </div>
 
         {/* Narrative Stage 1: QUEUING SINCE DAWN? */}
