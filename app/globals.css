@@ -3,8 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --background: #09090b;
+  --background: #ffffff;
+  --foreground: #09090b;
+  color-scheme: light;
+}
+
+html.dark {
+  --background: #000000;
   --foreground: #f4f4f5;
+  color-scheme: dark;
+}
+
+html.light {
+  --background: #ffffff;
+  --foreground: #09090b;
+  color-scheme: light;
 }
 
 body {
@@ -21,19 +34,25 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom scrollbar for dark console */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #a1a1aa;
   border-radius: 3px;
 }
+html.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
+}
 ::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
 
@@ -55,131 +74,17 @@ body {
 }
 
 /* =========================================================================
-   LIGHT THEME PALETTE OVERRIDES
+   CROWD CANVAS THEME RESPONSIVENESS
+   - Light mode: Pure white background, pure black outlines (no filter)
+   - Dark mode: Pure black background, pure white outlines (invert(1))
    ========================================================================= */
-html.light {
-  --background: #ffffff;
-  --foreground: #09090b;
-  color-scheme: light;
+.crowd-canvas-wrapper {
+  filter: none;
+  transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: filter;
 }
 
-html.light body {
-  background: #ffffff !important;
-  color: #09090b !important;
-}
-
-html.light .bg-zinc-950 {
-  background-color: #ffffff !important;
-}
-
-html.light .bg-zinc-900 {
-  background-color: #f8fafc !important;
-}
-
-html.light .bg-zinc-900\/90,
-html.light .bg-zinc-900\/80,
-html.light .bg-zinc-900\/70,
-html.light .bg-zinc-900\/60,
-html.light .bg-zinc-900\/40,
-html.light .bg-zinc-950\/90 {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(12px);
-}
-
-/* Crisp High-Contrast Typography */
-html.light .text-white,
-html.light .text-zinc-100 {
-  color: #09090b !important;
-}
-
-html.light .text-zinc-200 {
-  color: #1e293b !important;
-}
-
-html.light .text-zinc-300 {
-  color: #334155 !important;
-}
-
-html.light .text-zinc-400 {
-  color: #475569 !important;
-}
-
-html.light .text-zinc-500 {
-  color: #64748b !important;
-}
-
-/* Clean Borders */
-html.light .border-zinc-800,
-html.light .border-zinc-800\/80,
-html.light .border-zinc-800\/60,
-html.light .border-zinc-700,
-html.light .border-zinc-900 {
-  border-color: #e2e8f0 !important;
-}
-
-/* Primary Button in Light Mode */
-html.light button.bg-white,
-html.light .bg-white {
-  background-color: #09090b !important;
-  color: #ffffff !important;
-  border-color: #09090b !important;
-}
-html.light button.bg-white:hover {
-  background-color: #27272a !important;
-}
-
-/* Outline Buttons in Light Mode */
-html.light button.border-zinc-800,
-html.light a button.border-zinc-800 {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-}
-html.light button.border-zinc-800:hover,
-html.light a button.border-zinc-800:hover {
-  background-color: #f1f5f9 !important;
-  border-color: #94a3b8 !important;
-}
-
-/* Stage Badges */
-html.light .border-zinc-800.bg-zinc-900\/80 {
-  background-color: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-  color: #334155 !important;
-}
-
-html.light .border-emerald-800\/50.bg-emerald-950\/20 {
-  background-color: #ecfdf5 !important;
-  border-color: #a7f3d0 !important;
-  color: #059669 !important;
-}
-
-html.light .border-red-900\/50.bg-red-950\/20 {
-  background-color: #fef2f2 !important;
-  border-color: #fecaca !important;
-  color: #dc2626 !important;
-}
-
-html.light header {
-  background-color: rgba(255, 255, 255, 0.94) !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
-}
-
-html.light footer {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-}
-
-html.light ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-html.light ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-}
-
-html.light ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+html.dark .crowd-canvas-wrapper,
+.dark .crowd-canvas-wrapper {
+  filter: invert(1);
 }

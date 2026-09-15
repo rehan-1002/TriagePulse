@@ -65,18 +65,15 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300 selection:bg-zinc-800 selection:text-white">
+    <div className="w-full min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 transition-colors duration-300 selection:bg-zinc-800 selection:text-white">
       {/* Pinned Scroll Wrapper */}
       <div ref={containerRef} className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         
         {/* Exact Skiper39 Crowd Canvas Background */}
-        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-white dark:bg-zinc-950 transition-colors duration-300">
-          {/* Light: black outlines on pure white. Dark: inverted white outlines on black. */}
-          <div className="absolute inset-0 dark:invert opacity-70 dark:opacity-75 transition-all duration-300">
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-white dark:bg-black transition-colors duration-300">
+          <div className="crowd-canvas-wrapper absolute bottom-0 h-full w-screen dark:invert transition-all duration-300">
             <CrowdCanvas src="/images/peeps/all-peeps.png" rows={15} cols={7} />
           </div>
-          {/* Luminous overlay without any grey mud */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/50 to-white/10 dark:from-zinc-950/95 dark:via-zinc-950/60 dark:to-zinc-950/20 pointer-events-none transition-colors duration-300" />
         </div>
 
         {/* Narrative Stage 1: QUEUING SINCE DAWN? */}

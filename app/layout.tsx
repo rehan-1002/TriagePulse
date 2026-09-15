@@ -35,9 +35,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white overflow-x-hidden transition-colors duration-300">
+      <body className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white overflow-x-hidden transition-colors duration-300">
         {/* Global Operational Top Bar */}
-        <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-4 py-2.5 transition-colors duration-300">
+        <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-black/90 backdrop-blur-md px-4 py-2.5 transition-colors duration-300">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Link href="/" className="flex items-center gap-2 group">
@@ -45,7 +45,7 @@ export default function RootLayout({
                   <Activity className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <span className="font-mono text-sm font-bold tracking-wider text-white">
+                  <span className="font-mono text-sm font-bold tracking-wider text-zinc-900 dark:text-white">
                     TRIAGEPULSE
                   </span>
                   <span className="text-[10px] font-mono text-zinc-500 ml-1.5 uppercase hidden sm:inline">
@@ -59,7 +59,7 @@ export default function RootLayout({
             <nav className="flex items-center gap-1 sm:gap-2">
               <Link
                 href="/join"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
               >
                 <UserCheck className="w-3.5 h-3.5" />
                 <span>Patient Intake</span>
@@ -67,7 +67,7 @@ export default function RootLayout({
 
               <Link
                 href="/counter"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
               >
                 <Monitor className="w-3.5 h-3.5" />
                 <span>Doctor Cabin</span>
@@ -75,7 +75,7 @@ export default function RootLayout({
 
               <Link
                 href="/admin"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Clinical Admin</span>
@@ -83,13 +83,13 @@ export default function RootLayout({
 
               <Link
                 href="/display"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 border border-emerald-900/50 hover:border-emerald-700/80 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-300 dark:hover:border-emerald-700/80 transition-colors"
               >
                 <Tv className="w-3.5 h-3.5" />
                 <span>OPD Signage TV</span>
               </Link>
 
-              <div className="ml-1 pl-1.5 border-l border-zinc-800">
+              <div className="ml-1 pl-1.5 border-l border-zinc-200 dark:border-zinc-800">
                 <ThemeToggle />
               </div>
             </nav>
@@ -102,7 +102,7 @@ export default function RootLayout({
         </main>
 
         {/* Global Footer Meta */}
-        <footer className="border-t border-zinc-900 py-4 px-6 text-center text-xs font-mono text-zinc-600">
+        <footer className="border-t border-zinc-200 dark:border-zinc-900 bg-white dark:bg-black py-4 px-6 text-center text-xs font-mono text-zinc-500">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <span>TriagePulse Clinical Engine • Acuity-Time Hybrid Priority (ESI 1–5)</span>
             <span>Live Emergency Re-Forecasting • Zero-Install Web & Basic Phone Ready</span>

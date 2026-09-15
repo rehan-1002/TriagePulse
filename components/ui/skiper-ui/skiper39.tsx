@@ -7,9 +7,10 @@ interface CrowdCanvasProps {
   src: string;
   rows?: number;
   cols?: number;
+  className?: string;
 }
 
-const CrowdCanvas = ({ src, rows = 15, cols = 7 }: CrowdCanvasProps) => {
+const CrowdCanvas = ({ src, rows = 15, cols = 7, className }: CrowdCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -241,13 +242,13 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7 }: CrowdCanvasProps) => {
 
     const resize = () => {
       if (!canvas) return;
-      stage.width = window.innerWidth;
-      stage.height = window.innerHeight;
-      canvas.width = stage.width * (window.devicePixelRatio || 1);
-      canvas.height = stage.height * (window.devicePixelRatio || 1);
+      stage.width = canvas.clientWidth || window.innerWidth;
+      stage.height = canvas.clientHeight || window.innerHeight;
+      canvas.width = stage.width * devicePixelRatio;
+      canvas.height = stage.height * devicePixelRatio;
 
       crowd.forEach((peep) => {
-        peep.walk.kill();
+        if (peep.walk) peep.walk.kill();
       });
 
       crowd.length = 0;
@@ -263,7 +264,11 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7 }: CrowdCanvasProps) => {
       gsap.ticker.add(render);
     };
 
-    img.onload = init;
+    if (img.complete) {
+      init();
+    } else {
+      img.onload = init;
+    }
     img.src = config.src;
 
     const handleResize = () => resize();
@@ -278,19 +283,19 @@ const CrowdCanvas = ({ src, rows = 15, cols = 7 }: CrowdCanvasProps) => {
     };
   }, []);
   return (
-    <canvas ref={canvasRef} className="absolute inset-0 h-full w-full pointer-events-none" />
+    <canvas ref={canvasRef} className={className || "absolute bottom-0 h-[90vh] w-full"} />
   );
 };
 
 const Skiper39 = () => {
   return (
-    <div className="relative h-full w-full bg-white text-black">
-      <div className="top-22 absolute left-1/2 grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-black">
-        <span className="relative max-w-[12ch] text-xs uppercase leading-tight opacity-40 after:absolute after:left-1/2 after:top-full after:h-16 after:w-px after:bg-gradient-to-b after:from-white after:to-black after:content-['']">
-          Croud Canvas
+    <div className="relative h-full w-full bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
+      <div className="top-22 absolute left-1/2 grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-black dark:text-white">
+        <span className="relative max-w-[12ch] text-xs uppercase leading-tight opacity-40 after:absolute after:left-1/2 after:top-full after:h-16 after:w-px after:bg-gradient-to-b after:from-black after:to-transparent dark:after:from-white dark:after:to-transparent after:content-['']">
+          Crowd Canvas
         </span>
       </div>
-      <div className="absolute bottom-0 h-full w-screen">
+      <div className="crowd-canvas-wrapper absolute bottom-0 h-full w-screen dark:invert transition-all duration-300">
         <CrowdCanvas src="/images/peeps/all-peeps.png" rows={15} cols={7} />
       </div>
     </div>
@@ -298,4 +303,3 @@ const Skiper39 = () => {
 };
 
 export { CrowdCanvas, Skiper39 };
-export default Skiper39;
