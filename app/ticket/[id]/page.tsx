@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,6 +14,9 @@ import {
   Smartphone,
   Share2,
   Activity,
+  Volume2,
+  VolumeX,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
@@ -82,6 +85,101 @@ export default function VisitorMobilePassPage() {
   const [ticketUrl, setTicketUrl] = useState<string>("");
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
   const [failSafeCountdown, setFailSafeCountdown] = useState<number>(60);
+  const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
+  const [audioLanguage, setAudioLanguage] = useState<"hi-IN" | "en-IN">("hi-IN");
+  const lastAnnouncedRef = useRef<string>("");
+
+  // Synthesize dual-tone hospital chime via Web Audio API (pre-speech attention alert)
+  const playHospitalChime = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const now = ctx.currentTime;
+
+      // Tone 1: 587.33 Hz (D5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0.18, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.45);
+
+      // Tone 2: 880 Hz (A5)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.2);
+      gain2.gain.setValueAtTime(0.22, now + 0.2);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.2);
+      osc2.stop(now + 0.8);
+    } catch (e) {
+      // Audio context silenced if unprompted
+    }
+  }, []);
+
+  // Voice Announcement Announcer via browser SpeechSynthesis
+  const speakAnnouncement = useCallback(
+    (hindiText: string, englishText: string) => {
+      if (!isAudioEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) {
+        return;
+      }
+
+      try {
+        playHospitalChime();
+
+        // Trigger gentle haptic vibration
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try {
+            navigator.vibrate([150, 100, 200]);
+          } catch (e) {}
+        }
+
+        setTimeout(() => {
+          window.speechSynthesis.cancel();
+          const isHindi = audioLanguage === "hi-IN";
+          const textToSpeak = isHindi ? hindiText : englishText;
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+          utterance.lang = audioLanguage;
+          utterance.rate = 0.92;
+          utterance.pitch = 1.0;
+
+          const voices = window.speechSynthesis.getVoices();
+          if (isHindi) {
+            const hiVoice = voices.find(
+              (v) => v.lang.startsWith("hi") || v.name.toLowerCase().includes("hindi")
+            );
+            if (hiVoice) utterance.voice = hiVoice;
+          } else {
+            const enVoice = voices.find(
+              (v) => v.lang.startsWith("en-IN") || v.lang.startsWith("en-US")
+            );
+            if (enVoice) utterance.voice = enVoice;
+          }
+
+          window.speechSynthesis.speak(utterance);
+        }, 400);
+      } catch (err) {
+        console.warn("Speech synthesis error:", err);
+      }
+    },
+    [isAudioEnabled, audioLanguage, playHospitalChime]
+  );
+
+  const handleTestAudio = () => {
+    speakAnnouncement(
+      `आवाज़ चालू है। टोकन ${token?.displayNumber || "A-101"} के आगे ${peopleAhead} मरीज़ हैं।`,
+      `Voice alert enabled. Token ${token?.displayNumber || "A-101"} has ${peopleAhead} patients ahead.`
+    );
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -112,6 +210,47 @@ export default function VisitorMobilePassPage() {
   useEffect(() => {
     fetchTokenState();
   }, [fetchTokenState]);
+
+  // Proximity Queue Milestone Tracker: 5 ahead, 2 ahead, and Called
+  useEffect(() => {
+    if (!token) return;
+
+    if (token.status === "CALLED" || token.status === "SERVING") {
+      if (lastAnnouncedRef.current !== "CALLED") {
+        lastAnnouncedRef.current = "CALLED";
+        speakAnnouncement(
+          `टोकन नंबर ${token.displayNumber}, आपका नंबर आ गया है! कृपया ${
+            token.counter?.name || "कमरा नंबर 1"
+          } में तुरंत जाएं।`,
+          `Token ${token.displayNumber}, your turn has arrived! Please proceed to ${
+            token.counter?.name || "Counter 1"
+          } immediately.`
+        );
+      }
+    } else if (token.status === "WAITING") {
+      if (peopleAhead <= 2 && peopleAhead > 0) {
+        if (lastAnnouncedRef.current !== "2_AHEAD" && lastAnnouncedRef.current !== "CALLED") {
+          lastAnnouncedRef.current = "2_AHEAD";
+          speakAnnouncement(
+            `सावधान! टोकन ${token.displayNumber}, आपके आगे केवल 2 मरीज़ हैं। कृपया डॉक्टर के कमरे के बाहर आ जाएं।`,
+            `Attention! Token ${token.displayNumber}, only 2 patients ahead. Please wait right outside the doctor's room.`
+          );
+        }
+      } else if (peopleAhead <= 5 && peopleAhead > 2) {
+        if (
+          lastAnnouncedRef.current !== "5_AHEAD" &&
+          lastAnnouncedRef.current !== "2_AHEAD" &&
+          lastAnnouncedRef.current !== "CALLED"
+        ) {
+          lastAnnouncedRef.current = "5_AHEAD";
+          speakAnnouncement(
+            `कृपया ध्यान दें, टोकन ${token.displayNumber}, आपके आगे केवल 5 मरीज़ हैं। कृपया ओपीडी एरिया के पास आ जाएं।`,
+            `Please note, token ${token.displayNumber}, only 5 patients ahead. Please move near the OPD waiting area.`
+          );
+        }
+      }
+    }
+  }, [token, peopleAhead, speakAnnouncement]);
 
   // 60-Second Dead-Man's Switch Timer for Pending Emergency Requests
   useEffect(() => {
@@ -253,13 +392,96 @@ export default function VisitorMobilePassPage() {
       </div>
 
       {/* Surface Header */}
-      <div className="text-center space-y-0.5 sm:space-y-1">
-        <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-          {token.queue?.department || "Clinical Care Pathway"} • {token.queue?.name || "OPD"}
-        </span>
-        <h1 className="text-base sm:text-lg font-mono font-bold uppercase tracking-wide text-zinc-100">
-          Patient Clinical Care Pass
-        </h1>
+      {/* Audio Announcement Controls & Live Proximity Status Bar */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3.5 space-y-2.5 shadow-md">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all ${
+                isAudioEnabled
+                  ? "border-emerald-600 bg-emerald-950/60 text-emerald-300 shadow-sm"
+                  : "border-zinc-800 bg-zinc-900 text-zinc-500"
+              }`}
+              title="Toggle Audio Turn Announcements"
+            >
+              {isAudioEnabled ? (
+                <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-zinc-500" />
+              )}
+              <span>{isAudioEnabled ? "आवाज़ चालू (Audio ON)" : "मूक (Mute)"}</span>
+            </button>
+
+            {/* Test Audio Button */}
+            {isAudioEnabled && (
+              <button
+                type="button"
+                onClick={handleTestAudio}
+                className="px-2 py-1 rounded text-[11px] font-mono text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 transition-colors"
+                title="Test Voice Announcement"
+              >
+                🔊 टेस्ट
+              </button>
+            )}
+          </div>
+
+          {/* Language Switcher */}
+          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg text-xs font-mono">
+            <button
+              type="button"
+              onClick={() => setAudioLanguage("hi-IN")}
+              className={`px-2 py-1 rounded text-[11px] transition-colors ${
+                audioLanguage === "hi-IN"
+                  ? "bg-emerald-600 text-white font-bold"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              🇮🇳 हिंदी
+            </button>
+            <button
+              type="button"
+              onClick={() => setAudioLanguage("en-IN")}
+              className={`px-2 py-1 rounded text-[11px] transition-colors ${
+                audioLanguage === "en-IN"
+                  ? "bg-emerald-600 text-white font-bold"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              🇬🇧 Eng
+            </button>
+          </div>
+        </div>
+
+        {/* Live Proximity Milestone Alert Banners */}
+        {token.status === "WAITING" && peopleAhead <= 2 && (
+          <div className="rounded-lg border border-orange-500/80 bg-orange-950/40 p-2.5 flex items-center justify-between gap-2 animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping" />
+              <span className="text-xs font-bold text-orange-200">
+                ⚠️ ध्यान दें: केवल {peopleAhead} मरीज आगे हैं!
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-orange-300 font-bold uppercase bg-orange-900/60 px-2 py-0.5 rounded border border-orange-700/60">
+              कमरे के बाहर पहुंचें
+            </span>
+          </div>
+        )}
+
+        {token.status === "WAITING" && peopleAhead > 2 && peopleAhead <= 5 && (
+          <div className="rounded-lg border border-amber-500/70 bg-amber-950/30 p-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span className="text-xs font-bold text-amber-200">
+                🔔 केवल {peopleAhead} मरीज आगे हैं।
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-amber-300 bg-amber-900/50 px-2 py-0.5 rounded border border-amber-700/50">
+              ओपीडी के पास आ जाएं
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Visual Linear 4-Stage Stepper */}
