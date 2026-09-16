@@ -44,7 +44,9 @@ export function checkDeterministicOverrides(
     lower.includes("unresponsive") ||
     lower.includes("cardiac arrest") ||
     lower.includes("not breathing") ||
-    lower.includes("severe anaphylaxis")
+    lower.includes("severe anaphylaxis") ||
+    lower.includes("बेहोश") ||
+    lower.includes("सांस बंद")
   ) {
     return {
       departmentType: "EMERGENCY_ROOM",
@@ -54,30 +56,42 @@ export function checkDeterministicOverrides(
     };
   }
 
-  // Level 2: Emergent red flags (Chest pain, acute stroke signs, hypoxia SpO2 < 90%)
+  // Level 2: Emergent red flags (Chest pain, acute stroke signs, hypoxia SpO2 < 90%, severe bleeding)
   const isHypoxic = spo2 !== undefined && spo2 < 90;
   const hasCardiac =
     lower.includes("chest pain") ||
     lower.includes("radiating pain") ||
     lower.includes("heart attack") ||
     lower.includes("angina") ||
-    lower.includes("cold sweat");
+    lower.includes("cold sweat") ||
+    lower.includes("छाती में दर्द") ||
+    lower.includes("सीने में दर्द") ||
+    lower.includes("दिल का दौरा");
   const hasStroke =
     lower.includes("facial droop") ||
     lower.includes("slurred speech") ||
     lower.includes("stroke") ||
-    lower.includes("sudden weakness");
+    lower.includes("sudden weakness") ||
+    lower.includes("लकवा");
   const hasSevereResp =
     lower.includes("shortness of breath") ||
     lower.includes("difficulty breathing") ||
-    lower.includes("stridor");
+    lower.includes("stridor") ||
+    lower.includes("सांस लेने में तकलीफ") ||
+    lower.includes("दम फूलना");
+  const hasSevereTrauma =
+    lower.includes("heavy bleeding") ||
+    lower.includes("severe bleeding") ||
+    lower.includes("खून बहना") ||
+    lower.includes("गंभीर चोट");
 
-  if (isHypoxic || hasCardiac || hasStroke || hasSevereResp) {
+  if (isHypoxic || hasCardiac || hasStroke || hasSevereResp || hasSevereTrauma) {
     const flags: string[] = [];
     if (isHypoxic) flags.push("CRITICAL_HYPOXIA");
     if (hasCardiac) flags.push("CARDIAC_ALERT");
     if (hasStroke) flags.push("STROKE_SIGNS");
     if (hasSevereResp) flags.push("RESPIRATORY_DISTRESS");
+    if (hasSevereTrauma) flags.push("SEVERE_TRAUMA_BLEEDING");
 
     return {
       departmentType: "EMERGENCY_ROOM",
