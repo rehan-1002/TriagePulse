@@ -62,6 +62,7 @@ interface TokenDetail {
     id: string;
     reason: string;
     status: "PENDING" | "APPROVED" | "REJECTED";
+    requestedAt?: string;
     notes: string | null;
   } | null;
 }
@@ -80,6 +81,7 @@ export default function VisitorMobilePassPage() {
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [ticketUrl, setTicketUrl] = useState<string>("");
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
+  const [failSafeCountdown, setFailSafeCountdown] = useState<number>(60);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -110,6 +112,32 @@ export default function VisitorMobilePassPage() {
   useEffect(() => {
     fetchTokenState();
   }, [fetchTokenState]);
+
+  // 60-Second Dead-Man's Switch Timer for Pending Emergency Requests
+  useEffect(() => {
+    if (!token?.emergencyRequest || token.emergencyRequest.status !== "PENDING") {
+      setFailSafeCountdown(60);
+      return;
+    }
+
+    const reqTime = token.emergencyRequest.requestedAt
+      ? new Date(token.emergencyRequest.requestedAt).getTime()
+      : Date.now();
+
+    const updateCountdown = () => {
+      const elapsed = Math.floor((Date.now() - reqTime) / 1000);
+      const remaining = Math.max(0, 60 - elapsed);
+      setFailSafeCountdown(remaining);
+
+      if (remaining === 0) {
+        fetchTokenState();
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [token?.emergencyRequest, fetchTokenState]);
 
   // Realtime hook with instant reconciliation
   const { connectionState } = useRealtimeQueue({
@@ -282,42 +310,54 @@ export default function VisitorMobilePassPage() {
 
       {/* Emergency Status Banner if active */}
       {hasPendingEmergency && (
-        <div className="rounded-lg border border-amber-800/80 bg-amber-950/40 p-3 flex items-start gap-2.5">
-          <ShieldAlert className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="text-xs">
-            <span className="font-mono uppercase font-bold text-amber-300 block">
-              Priority Review Submitted
+        <div className="rounded-xl border-2 border-amber-600/90 bg-amber-950/40 p-4 space-y-2.5 shadow-lg">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 text-amber-300 font-bold text-sm font-mono">
+              <ShieldAlert className="w-5 h-5 text-amber-400 animate-pulse flex-shrink-0" />
+              <span>आपातकालीन समीक्षा सक्रिय / Priority Review Active</span>
+            </div>
+            <div className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-xs font-bold flex-shrink-0">
+              {failSafeCountdown > 0 ? `Fail-safe: ${failSafeCountdown}s` : "Auto-Promoting..."}
+            </div>
+          </div>
+          <p className="text-xs text-zinc-300 leading-relaxed">
+            स्टाफ डेस्क पर आपातकालीन अलार्म भेजा गया है।
+            <span className="block font-bold text-amber-200 mt-1">
+              सुरक्षा गारंटी (Fail-Safe): यदि 60 सेकंड में स्टाफ उपस्थित नहीं हुआ, तो सिस्टम आपको स्वचालित रूप से #1 पर प्रमोट कर देगा।
             </span>
-            <span className="text-zinc-400 text-[11px]">
-              Your request is under administrative review. Queue order will update immediately upon approval.
-            </span>
+          </p>
+          <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-amber-500 h-1.5 transition-all duration-1000"
+              style={{ width: `${Math.min(100, Math.max(0, (failSafeCountdown / 60) * 100))}%` }}
+            />
           </div>
         </div>
       )}
 
       {hasApprovedEmergency && (
-        <div className="rounded-lg border border-red-600/80 bg-red-950/40 p-3 flex items-start gap-2.5">
-          <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+        <div className="rounded-xl border-2 border-red-600 bg-red-950/40 p-4 flex items-start gap-3 shadow-lg shadow-red-950/40">
+          <ShieldAlert className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5 animate-bounce" />
           <div className="text-xs">
-            <span className="font-mono uppercase font-bold text-red-300 block">
-              Priority Approved (Emergency #1)
+            <span className="font-mono uppercase font-bold text-red-300 block text-sm">
+              आपातकाल स्वीकृत (Priority #1 Approved)
             </span>
-            <span className="text-zinc-400 text-[11px]">
-              Administrative priority approved. You are positioned at the head of the queue.
+            <span className="text-zinc-200 text-xs block mt-1">
+              आपकी आपातकालीन स्थिति सत्यापित हो चुकी है। आप कतार में <strong>सर्वोच्च #1 स्थान</strong> पर हैं। कृपया सीधे आपातकालीन डॉक्टर के पास पहुंचें।
             </span>
           </div>
         </div>
       )}
 
       {hasRejectedEmergency && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
+        <div className="rounded-xl border-2 border-amber-800/80 bg-amber-950/30 p-3.5 flex items-start gap-2.5">
+          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
           <div className="text-xs">
-            <span className="font-mono uppercase font-bold text-zinc-300 block">
-              Priority Request Reviewed
+            <span className="font-mono uppercase font-bold text-amber-300 block">
+              आपातकालीन अनुरोध अस्वीकृत (Anti-Spoof Penalty Applied)
             </span>
-            <span className="text-zinc-400 text-[11px]">
-              Standard queue order maintained by administrative review.
+            <span className="text-zinc-400 text-[11px] block mt-0.5">
+              स्टाफ समीक्षा में स्थिति आपातकालीन नहीं पाई गई। लाइन काटने से रोकने के नियम अनुसार, आपका टोकन कतार के अंत में स्थानांतरित किया गया है।
             </span>
           </div>
         </div>
@@ -469,16 +509,14 @@ export default function VisitorMobilePassPage() {
       {token.status === "WAITING" && (
         <div className="space-y-3 pt-2">
           {!token.isDeteriorating && !token.emergencyRequest && (
-            <Button
+            <button
               type="button"
-              variant="danger"
-              size="md"
-              className="w-full"
               onClick={() => setIsEmergencyModalOpen(true)}
-              icon={<Activity className="w-4 h-4" />}
+              className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.98] text-white font-mono font-bold text-xs sm:text-sm shadow-lg shadow-red-950/50 transition-all"
             >
-              Feeling Worse? Report Clinical Distress
-            </Button>
+              <ShieldAlert className="w-4 h-4 animate-pulse" />
+              <span>🚨 आपातकाल / गंभीर तकलीफ (Report Emergency SOS)</span>
+            </button>
           )}
 
           <Button

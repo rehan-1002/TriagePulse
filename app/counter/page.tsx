@@ -134,19 +134,21 @@ export default function CounterConsolePage() {
   const [isAssignQueueModalOpen, setIsAssignQueueModalOpen] = useState(false);
   const [targetTransferQueueId, setTargetTransferQueueId] = useState("");
   const [targetAssignQueueId, setTargetAssignQueueId] = useState("");
+  const [pendingEmergencies, setPendingEmergencies] = useState<any[]>([]);
 
   const showNotification = (message: string, type: "success" | "error" | "info" = "info") => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Fetch counters and queue state resiliently
+  // Fetch counters, queue state, and active emergency alerts resiliently
   const fetchWorkstationState = useCallback(async (silent = false) => {
     if (!silent) setIsRefreshing(true);
     try {
-      const [countersRes, queuesRes] = await Promise.allSettled([
+      const [countersRes, queuesRes, emergencyRes] = await Promise.allSettled([
         fetch("/api/counters", { cache: "no-store" }),
         fetch("/api/queues", { cache: "no-store" }),
+        fetch("/api/emergency", { cache: "no-store" }),
       ]);
 
       if (countersRes.status === "fulfilled" && countersRes.value.ok) {
@@ -171,6 +173,14 @@ export default function CounterConsolePage() {
           setAllQueues(queuesData.queues);
         }
       }
+
+      if (emergencyRes.status === "fulfilled" && emergencyRes.value.ok) {
+        const emergencyData = await emergencyRes.value.json();
+        if (emergencyData.success && Array.isArray(emergencyData.requests)) {
+          const pending = emergencyData.requests.filter((r: any) => r.status === "PENDING");
+          setPendingEmergencies(pending);
+        }
+      }
     } catch (err) {
       console.error("Failed to load counter workstation state:", err);
     } finally {
@@ -178,6 +188,37 @@ export default function CounterConsolePage() {
       if (!silent) setIsRefreshing(false);
     }
   }, []);
+
+  // Quick emergency verification from Doctor Cabin
+  const handleReviewEmergency = async (requestId: string, action: "APPROVE" | "REJECT") => {
+    setActionLoading(`emergency_${requestId}`);
+    try {
+      const res = await fetch("/api/emergency", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId,
+          action,
+          reviewer: currentCounter?.operatorName || "Attending Physician",
+          notes: action === "APPROVE" ? "Approved by Doctor Cabin" : "Flagged as spoof emergency by Physician",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Review failed");
+
+      showNotification(
+        action === "APPROVE"
+          ? "🚨 आपातकाल स्वीकृत: मरीज को कतार में #1 पर प्रमोट किया गया।"
+          : "⚠️ आपातकाल अस्वीकृत: लाइन काटने की पेनल्टी लगाई गई (टोकन अंत में भेजा गया)।",
+        action === "APPROVE" ? "success" : "info"
+      );
+      fetchWorkstationState(true);
+    } catch (err: any) {
+      showNotification(err.message || "Failed to process review", "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   useEffect(() => {
     fetchWorkstationState();
@@ -441,6 +482,80 @@ export default function CounterConsolePage() {
           {notification.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
           {notification.type === "error" && <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
           <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* Multi-Station Urgent Priority Alert Banner (Doctor / Nurse Red Phone) */}
+      {pendingEmergencies.length > 0 && (
+        <div className="rounded-xl border-2 border-red-600 bg-red-950/90 p-4 text-white shadow-2xl shadow-red-950/70 animate-pulse space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-800/80 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-600 text-white">
+                <ShieldAlert className="w-6 h-6 animate-bounce" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider bg-red-600 px-2 py-0.5 rounded text-white">
+                    🚨 तत्काल आपातकालीन समीक्षा (Emergency Gatekeeper)
+                  </span>
+                  <span className="text-xs text-red-200 font-mono">
+                    {pendingEmergencies.length} लंबित अनुरोध
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white mt-0.5">
+                  यदि नर्स डेस्क अनुपस्थित है, तो डॉक्टर केबिन से तुरंत निर्णय लें (60s Fail-Safe Active)
+                </h3>
+              </div>
+            </div>
+            <div className="text-[11px] font-mono text-red-300">
+              सुरक्षा सिद्धांत: 60 सेकंड में बिना सत्यापन के यह स्वतः #1 हो जाएगा
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {pendingEmergencies.map((req: any) => (
+              <div
+                key={req.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/50 border border-red-700/60"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-bold text-emerald-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                      टोकन {req.token.displayNumber}
+                    </span>
+                    <span className="text-xs font-bold text-white">
+                      {req.token.visitorName}
+                    </span>
+                    <span className="text-[11px] font-mono text-zinc-400">
+                      (वर्तमान स्थान: #{req.token.position})
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-200 mt-1 font-mono">
+                    शिकायत / लक्षण: {req.reason}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    disabled={actionLoading === `emergency_${req.id}`}
+                    onClick={() => handleReviewEmergency(req.id, "APPROVE")}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono font-bold text-xs shadow-md transition-all disabled:opacity-50"
+                  >
+                    ✅ आपातकाल स्वीकारें (#1)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={actionLoading === `emergency_${req.id}`}
+                    onClick={() => handleReviewEmergency(req.id, "REJECT")}
+                    className="px-3 py-1.5 rounded-lg bg-red-800 hover:bg-red-700 active:scale-95 text-white font-mono font-bold text-xs shadow-md transition-all disabled:opacity-50"
+                  >
+                    ❌ अस्वीकार व दंड (Spoof)
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

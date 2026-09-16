@@ -5,6 +5,7 @@ import {
   approveEmergencyRequest,
   rejectEmergencyRequest,
   toggleDirectEmergency,
+  resolveUnattendedEmergencyRequests,
 } from "@/lib/queue/engine";
 import { EmergencyRequestSchema, EmergencyReviewSchema } from "@/lib/security/validation";
 import { sanitizeText } from "@/lib/security/sanitize";
@@ -13,6 +14,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    // Passive 60s fail-safe audit: auto-promotes any emergency requests left unattended for >60s
+    await resolveUnattendedEmergencyRequests().catch(() => {});
+
     const requests = await prisma.emergencyRequest.findMany({
       include: {
         token: {
@@ -101,10 +105,10 @@ export async function PATCH(request: NextRequest) {
         ...result,
       });
     } else {
-      const result = await rejectEmergencyRequest(requestId, cleanReviewer, cleanNotes);
+      const result = await rejectEmergencyRequest(requestId, cleanReviewer, cleanNotes, true);
       return NextResponse.json({
         success: true,
-        message: "Priority request rejected. Queue position unchanged.",
+        message: "Priority rejected. Anti-spoof penalty applied: Token demoted to end of queue.",
         ...result,
       });
     }

@@ -512,7 +512,62 @@ export async function submitEmergencyRequest(tokenId: string, reason: string) {
     },
   });
 
+  // Active 60-Second Dead-Man's Switch (Fail-Safe)
+  // If triage desk is unattended for 60s, automatically fail open to #1
+  setTimeout(async () => {
+    try {
+      const check = await prisma.emergencyRequest.findUnique({
+        where: { id: emergencyRequest.id },
+      });
+      if (check && check.status === "PENDING") {
+        console.log(`[60s FAIL-SAFE TRIGGERED] Emergency request ${check.id} unattended for 60s. Auto-promoting.`);
+        await approveEmergencyRequest(
+          check.id,
+          "SYSTEM_FAILSAFE_TIMEOUT",
+          "Auto-promoted to #1: Triage desk unattended for >60s. Safety-first fail-open."
+        );
+      }
+    } catch (err) {
+      console.error("Fail-safe 60s auto-promotion error:", err);
+    }
+  }, 60000);
+
   return emergencyRequest;
+}
+
+/**
+ * Auto-promote pending emergency requests that have been unattended for >60s
+ * Called passively during queries to guarantee 60s fail-safe execution across serverless lifecycles
+ */
+export async function resolveUnattendedEmergencyRequests() {
+  const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
+  const unattended = await prisma.emergencyRequest.findMany({
+    where: {
+      status: "PENDING",
+      requestedAt: { lte: sixtySecondsAgo },
+    },
+    include: {
+      token: true,
+    },
+  });
+
+  const promoted = [];
+  for (const req of unattended) {
+    if (req.token.status === "WAITING") {
+      try {
+        console.log(`[PASSIVE AUDIT FAIL-SAFE] Auto-promoting unattended emergency request ${req.id}`);
+        const result = await approveEmergencyRequest(
+          req.id,
+          "SYSTEM_FAILSAFE_TIMEOUT",
+          "Auto-promoted to #1: Triage desk unattended for >60s. Safety-first fail-open."
+        );
+        promoted.push(result);
+      } catch (err) {
+        console.error(`Error auto-promoting emergency request ${req.id}:`, err);
+      }
+    }
+  }
+  return promoted;
 }
 
 /**
@@ -608,9 +663,15 @@ export async function approveEmergencyRequest(requestId: string, reviewer = "Adm
 }
 
 /**
- * Reject Emergency Request
+ * Reject Emergency Request with Anti-Spoof Demotion Penalty
+ * Demotes token to lowest priority and pushes to the very back of the line
  */
-export async function rejectEmergencyRequest(requestId: string, reviewer = "Admin", notes?: string) {
+export async function rejectEmergencyRequest(
+  requestId: string,
+  reviewer = "Admin",
+  notes?: string,
+  isSpoofPenalty = true
+) {
   const request = await prisma.emergencyRequest.findUnique({
     where: { id: requestId },
     include: { token: { include: { queue: true } } },
@@ -630,8 +691,30 @@ export async function rejectEmergencyRequest(requestId: string, reviewer = "Admi
       status: "REJECTED",
       reviewedAt: new Date(),
       reviewedBy: reviewer,
-      notes: notes || "Rejected by administration",
+      notes: notes || (isSpoofPenalty ? "Rejected as non-emergency spoof. Demoted to back of queue." : "Rejected by administration"),
     },
+  });
+
+  // Anti-Spoof Penalty: Demote token to LEVEL_5_NON_URGENT and reset wait clock
+  if (isSpoofPenalty && request.token.status === "WAITING") {
+    await prisma.token.update({
+      where: { id: request.token.id },
+      data: {
+        priority: "STANDARD",
+        triageLevel: "LEVEL_5_NON_URGENT",
+        isDeteriorating: false,
+        createdAt: new Date(), // Reset starvation clock to drop score to minimum
+      },
+    });
+
+    // Reindex queue so penalized token falls to the very end
+    await reindexQueuePositions(prisma, request.token.queueId);
+  }
+
+  // Fetch updated token
+  const penalizedToken = await prisma.token.findUnique({
+    where: { id: request.token.id },
+    include: { queue: true },
   });
 
   // Record Event
@@ -639,10 +722,12 @@ export async function rejectEmergencyRequest(requestId: string, reviewer = "Admi
     data: {
       tokenId: request.tokenId,
       queueId: request.token.queueId,
-      eventType: "EMERGENCY_REJECTED",
+      eventType: "SPOOF_PENALTY_DEMOTED",
       actor: reviewer,
       metadata: JSON.stringify({
         displayNumber: request.token.displayNumber,
+        oldPosition: request.token.position,
+        newPosition: penalizedToken?.position,
         reason: request.reason,
         notes,
       }),
@@ -656,16 +741,18 @@ export async function rejectEmergencyRequest(requestId: string, reviewer = "Admi
       token: {
         id: request.token.id,
         displayNumber: request.token.displayNumber,
-        position: request.token.position,
+        position: penalizedToken?.position || request.token.position,
+        triageLevel: "LEVEL_5_NON_URGENT",
       },
       request: {
         id: updatedRequest.id,
         status: updatedRequest.status,
       },
+      spoofPenalty: isSpoofPenalty,
     },
   });
 
-  return { request: updatedRequest, token: request.token };
+  return { request: updatedRequest, token: penalizedToken || request.token };
 }
 
 /**
