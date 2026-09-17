@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "app/**/*.ts", "app/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "lib/**/*.ts", "tests/**/*.ts", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "QueuePositionCounter.tsx"]
+  "exclude": ["node_modules"]
 }

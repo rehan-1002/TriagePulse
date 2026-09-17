@@ -36,6 +36,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { QRCodeDisplay } from "@/components/ui/QRCodeDisplay";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
+import { VoiceIntakeModal } from "@/components/voice/VoiceIntakeModal";
 
 interface QueueItem {
   id: string;
@@ -217,6 +218,7 @@ export default function CheckInPage() {
   const [voiceLang, setVoiceLang] = useState<"hi-IN" | "en-IN">("hi-IN");
   const [speechFeedback, setSpeechFeedback] = useState<string>("");
   const recognitionRef = useRef<any>(null);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState<boolean>(false);
 
   // AI Triage state (for detailed mode)
   const [aiPrompt, setAiPrompt] = useState<string>("");
@@ -601,6 +603,44 @@ export default function CheckInPage() {
           >
             <ShieldAlert className="w-4 h-4 animate-bounce" />
             <span>🚨 1-क्लिक इमरजेंसी सहायता (SOS)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          VOICE-FIRST PATIENT INTAKE (ONE-TAP ZERO TYPING)
+          ========================================================================= */}
+      <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-950/80 via-zinc-950 to-teal-950/80 p-4 sm:p-5 shadow-xl shadow-emerald-950/40">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-zinc-950 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-500/30">
+              <Mic className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+                  बोलकर टोकन लें (Voice-First Intake)
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  AI ASSISTANT
+                </span>
+              </div>
+              <h2 className="text-base sm:text-lg font-bold text-white mt-1">
+                माइक पर बोलें — टोकन, सावधानियां व डॉक्टर जांच की जानकारी तुरंत पाएं
+              </h2>
+              <p className="text-xs text-zinc-300 mt-0.5">
+                Speak symptoms in Hindi or English. AI automatically assigns department, gives precautions & expected doctor tests.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsVoiceModalOpen(true)}
+            className="flex-shrink-0 py-3 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-bold text-sm tracking-wide transition shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Mic className="w-4 h-4" />
+            <span>🎙️ बोलकर टोकन लें / Voice Intake</span>
           </button>
         </div>
       </div>
@@ -1158,6 +1198,12 @@ export default function CheckInPage() {
           </div>
         </div>
       )}
+
+      {/* Voice-First Intake Modal */}
+      <VoiceIntakeModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+      />
     </div>
   );
 }

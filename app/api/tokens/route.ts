@@ -96,21 +96,48 @@ export async function POST(request: NextRequest) {
     // 7. Generate Unique Session ID for each ticket submission
     const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    // 8. Atomic Queue Engine Execution
+    // 8. Atomic Queue Engine Execution with Grounded RAG Metadata
+    const enrichedVitalSigns = {
+      ...(typeof vitalSigns === "object" && vitalSigns !== null ? vitalSigns : {}),
+      ragClinical: {
+        citedProtocolId: triageResult.citedProtocolId,
+        protocolTitle: triageResult.protocolTitle,
+        clinicalRationale: triageResult.clinicalRationale,
+        redFlags: triageResult.redFlags,
+        immediateActions: triageResult.immediateActions,
+        differentialConsiderations: triageResult.differentialConsiderations,
+        anticipatedOrders: triageResult.anticipatedOrders,
+        precautions: triageResult.precautions,
+        patientVoiceScript: triageResult.patientVoiceScript,
+      },
+    };
+
     const token = await createToken({
       queueId,
       visitorSessionId: sessionId,
       visitorName: cleanVisitorName,
       purpose: cleanPurpose,
       chiefComplaint: cleanComplaint,
-      vitalSigns: vitalSigns || null,
+      vitalSigns: enrichedVitalSigns,
       triageLevel: triageResult.triageLevel,
       riskFlags: triageResult.riskFlags,
       targetDepartment: triageResult.departmentType,
       currentStage: "TRIAGE_INTAKE",
     });
 
-    const response = NextResponse.json({ success: true, token }, { status: 201 });
+    const response = NextResponse.json(
+      {
+        success: true,
+        token,
+        guidance: {
+          precautions: triageResult.precautions,
+          patientVoiceScript: triageResult.patientVoiceScript,
+          anticipatedOrders: triageResult.anticipatedOrders,
+          citedProtocolId: triageResult.citedProtocolId,
+        },
+      },
+      { status: 201 }
+    );
 
     // Set signed session cookie
     response.cookies.set("lq_session", sessionId, {

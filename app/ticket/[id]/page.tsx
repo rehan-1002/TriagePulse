@@ -26,6 +26,7 @@ import { QRCodeDisplay } from "@/components/ui/QRCodeDisplay";
 import { EmergencyModal } from "@/components/visitor/EmergencyModal";
 import { LiveQueueHero } from "@/components/queue/QueuePositionCounter";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
+import { PatientCareAssistant } from "@/components/visitor/PatientCareAssistant";
 
 interface TokenDetail {
   id: string;
@@ -584,6 +585,12 @@ export default function VisitorMobilePassPage() {
           </div>
         </div>
       )}
+
+      {/* Smart Grounded Patient Care Assistant (Precautions, Expected Tests & FAQs) */}
+      <PatientCareAssistant
+        token={token}
+        preferredLang={audioLanguage === "hi-IN" ? "hi" : "en"}
+      />
 
       {/* Dominant Visual State: NOW SERVING TAKEOVER */}
       {isCalled && (

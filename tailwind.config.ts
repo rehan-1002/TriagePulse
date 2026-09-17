@@ -6,7 +6,6 @@ export default {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./QueuePositionCounter.tsx",
   ],
   theme: {
     extend: {

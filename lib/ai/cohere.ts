@@ -1,5 +1,6 @@
 import { prisma } from "../db/prisma";
 import { DepartmentType, TriageLevel } from "@prisma/client";
+import { retrieveClinicalEvidence } from "./rag";
 
 export interface VitalSignsInput {
   spo2?: number;
@@ -14,6 +15,14 @@ export interface ClinicalTriageResult {
   triageLevel: TriageLevel;
   riskFlags: string[];
   clinicalRationale: string;
+  citedProtocolId?: string;
+  protocolTitle?: string;
+  redFlags?: string[];
+  immediateActions?: string[];
+  differentialConsiderations?: string[];
+  anticipatedOrders?: string[];
+  precautions?: { en: string; hi: string };
+  patientVoiceScript?: { en: string; hi: string };
 }
 
 export interface RoutingSuggestion {
@@ -117,38 +126,26 @@ export async function classifyPatientSymptoms(
     return safetyOverride;
   }
 
-  // 2. Call Cohere LLM if API Key is configured
+  // 2. Retrieve grounded clinical evidence from verified ESI v4 protocols
+  const ragEvidence = await retrieveClinicalEvidence(chiefComplaint, vitals);
+
+  // 3. If Cohere API Key is available, allow prompt refinement while strictly enforcing cited protocol
   const apiKey = process.env.COHERE_API_KEY;
   if (apiKey && apiKey.trim() !== "") {
     try {
-      const prompt = `You are a certified emergency triage physician applying the Emergency Severity Index (ESI v4).
-Patient Complaint: "${chiefComplaint}"
-Vital Signs: ${JSON.stringify(vitals || {})}
+      const prompt = `You are an Emergency Medicine specialist applying ESI v4 guidelines.
+Patient: "${chiefComplaint}"
+Vitals: ${JSON.stringify(vitals || {})}
+Grounded ESI Protocol: ${ragEvidence.citedProtocolId} - ${ragEvidence.protocolTitle}
+Recommended Level: ${ragEvidence.triageLevel}
+Recommended Department: ${ragEvidence.departmentType}
 
-Classify the clinical priority and appropriate hospital department.
-Departments allowed:
-- "TRIAGE_DESK" (General intake, vitals checking)
-- "EMERGENCY_ROOM" (Life-threat, severe trauma, emergent)
-- "GENERAL_OPD" (Standard medical consultation)
-- "CARDIOLOGY" (Subacute cardiac, hypertension consult)
-- "ORTHOPEDICS" (Bone, joint, muscular, sprains)
-- "PATHOLOGY_LAB" (Blood work, specimens)
-- "RADIOLOGY_SCAN" (X-Ray, CT, Ultrasound)
-- "CENTRAL_PHARMACY" (Prescription dispense, drug refills)
-
-Triage Levels allowed:
-- "LEVEL_1_RESUSCITATION"
-- "LEVEL_2_EMERGENT"
-- "LEVEL_3_URGENT" (Stable, requires 2+ resources)
-- "LEVEL_4_LESS_URGENT" (Stable, requires 1 resource)
-- "LEVEL_5_NON_URGENT" (Routine, prescription refill)
-
-Output strict JSON only:
+Verify this assignment and output strict JSON only:
 {
-  "departmentType": "GENERAL_OPD",
-  "triageLevel": "LEVEL_3_URGENT",
-  "riskFlags": ["FEBRILE"],
-  "clinicalRationale": "Short justification"
+  "departmentType": "${ragEvidence.departmentType}",
+  "triageLevel": "${ragEvidence.triageLevel}",
+  "riskFlags": ${JSON.stringify(ragEvidence.redFlags)},
+  "clinicalRationale": "${ragEvidence.clinicalRationale.replace(/"/g, "'")}"
 }`;
 
       const response = await fetch("https://api.cohere.com/v1/chat", {
@@ -170,106 +167,23 @@ Output strict JSON only:
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           return {
-            departmentType: parsed.departmentType || "GENERAL_OPD",
-            triageLevel: parsed.triageLevel || "LEVEL_4_LESS_URGENT",
-            riskFlags: Array.isArray(parsed.riskFlags) ? parsed.riskFlags : [],
-            clinicalRationale: parsed.clinicalRationale || "Categorized via ESI protocol.",
+            ...ragEvidence,
+            departmentType: parsed.departmentType || ragEvidence.departmentType,
+            triageLevel: parsed.triageLevel || ragEvidence.triageLevel,
+            riskFlags: Array.isArray(parsed.riskFlags) ? parsed.riskFlags : ragEvidence.redFlags,
+            clinicalRationale: parsed.clinicalRationale || ragEvidence.clinicalRationale,
           };
         }
       }
     } catch (err) {
-      console.warn("Cohere clinical triage call failed, using clinical heuristic fallback:", err);
+      console.warn("Cohere clinical triage call failed, using clinical RAG evidence:", err);
     }
   }
 
-  // 3. Clinical Heuristic Fallback
-  const lower = (chiefComplaint || "").toLowerCase();
-
-  // Orthopedics / Musculoskeletal
-  if (
-    lower.includes("fracture") ||
-    lower.includes("sprain") ||
-    lower.includes("twisted") ||
-    lower.includes("bone") ||
-    lower.includes("joint") ||
-    lower.includes("ankle") ||
-    lower.includes("wrist")
-  ) {
-    return {
-      departmentType: "ORTHOPEDICS",
-      triageLevel: "LEVEL_4_LESS_URGENT",
-      riskFlags: ["ISOLATED_EXTREMITY"],
-      clinicalRationale: "Isolated musculoskeletal complaint requiring single diagnostic resource.",
-    };
-  }
-
-  // Pharmacy / Refill
-  if (
-    lower.includes("refill") ||
-    lower.includes("prescription") ||
-    lower.includes("medication") ||
-    lower.includes("tablets") ||
-    lower.includes("routine checkup")
-  ) {
-    return {
-      departmentType: "CENTRAL_PHARMACY",
-      triageLevel: "LEVEL_5_NON_URGENT",
-      riskFlags: [],
-      clinicalRationale: "Medication refill or administrative checkup without acute complaints.",
-    };
-  }
-
-  // Diagnostic Labs / Imaging
-  if (lower.includes("blood test") || lower.includes("lab") || lower.includes("sample") || lower.includes("cbc")) {
-    return {
-      departmentType: "PATHOLOGY_LAB",
-      triageLevel: "LEVEL_4_LESS_URGENT",
-      riskFlags: [],
-      clinicalRationale: "Laboratory diagnostic request.",
-    };
-  }
-
-  if (lower.includes("x-ray") || lower.includes("xray") || lower.includes("scan") || lower.includes("ultrasound")) {
-    return {
-      departmentType: "RADIOLOGY_SCAN",
-      triageLevel: "LEVEL_4_LESS_URGENT",
-      riskFlags: [],
-      clinicalRationale: "Radiological imaging referral.",
-    };
-  }
-
-  // Cardiology subacute
-  if (lower.includes("palpitations") || lower.includes("bp check") || lower.includes("hypertension")) {
-    return {
-      departmentType: "CARDIOLOGY",
-      triageLevel: "LEVEL_3_URGENT",
-      riskFlags: ["CARDIAC_MONITOR"],
-      clinicalRationale: "Subacute cardiovascular symptoms warranting cardiology evaluation.",
-    };
-  }
-
-  // Multi-resource abdominal / systemic urgent
-  if (
-    lower.includes("abdominal pain") ||
-    lower.includes("stomach pain") ||
-    lower.includes("fever") ||
-    lower.includes("vomiting") ||
-    lower.includes("infection")
-  ) {
-    return {
-      departmentType: "GENERAL_OPD",
-      triageLevel: "LEVEL_3_URGENT",
-      riskFlags: lower.includes("fever") ? ["FEBRILE"] : [],
-      clinicalRationale: "Systemic symptoms likely requiring multiple hospital resources (labs, consult).",
-    };
-  }
-
-  // Standard General Outpatient consult
+  // 3. Grounded Clinical RAG Evidence (Zero Hallucination)
   return {
-    departmentType: "GENERAL_OPD",
-    triageLevel: "LEVEL_4_LESS_URGENT",
-    riskFlags: [],
-    clinicalRationale: "Standard outpatient consultation without acute instability.",
+    ...ragEvidence,
+    riskFlags: ragEvidence.redFlags,
   };
 }
 

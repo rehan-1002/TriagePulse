@@ -1,0 +1,96 @@
+[
+  {
+    "department": "EMERGENCY_ROOM",
+    "name": "Emergency & Trauma Resuscitation",
+    "location": "Ground Floor, Red Bay Entry",
+    "inclusionCriteria": [
+      "Chest pain with cardiac radiation",
+      "Acute stroke symptoms within 4.5 hour window",
+      "SpO2 < 90% or respiratory arrest",
+      "Uncontrolled acute hemorrhage",
+      "Severe polytrauma or unconsciousness"
+    ],
+    "operatingHours": "24/7 Continuous Emergency Service",
+    "prerequisites": "Immediate zero-wait entry. No registration paperwork required before stabilization.",
+    "standardTurnaroundMins": 15
+  },
+  {
+    "department": "GENERAL_OPD",
+    "name": "General Outpatient Medicine",
+    "location": "First Floor, Wing A, Rooms 101-108",
+    "inclusionCriteria": [
+      "Fever, flu symptoms, infectious disease",
+      "Abdominal pain, gastritis, diarrhea, vomiting",
+      "Chronic hypertension, diabetes, routine consultations",
+      "General health checkups and preliminary screenings"
+    ],
+    "operatingHours": "08:00 AM - 08:00 PM",
+    "prerequisites": "Valid triage token, previous prescription booklet, and recent vitals slip.",
+    "standardTurnaroundMins": 25
+  },
+  {
+    "department": "CARDIOLOGY",
+    "name": "Cardiology & Vascular Medicine",
+    "location": "Second Floor, Wing C, Rooms 201-204",
+    "inclusionCriteria": [
+      "Chronic angina, ischemic heart disease follow-up",
+      "Palpitations, arrhythmia, post-stent evaluations",
+      "Hypertensive urgency without acute end-organ failure"
+    ],
+    "operatingHours": "09:00 AM - 05:00 PM",
+    "prerequisites": "Prior 12-lead ECG strip from Triage and previous echo reports if available.",
+    "standardTurnaroundMins": 30
+  },
+  {
+    "department": "ORTHOPEDICS",
+    "name": "Orthopedics & Joint Care",
+    "location": "Ground Floor, Wing B, Rooms 112-116",
+    "inclusionCriteria": [
+      "Suspected bone fractures, joint dislocations",
+      "Severe sprains, ligament tears, acute joint effusion",
+      "Chronic spine pain, osteoarthritis, sports injuries"
+    ],
+    "operatingHours": "08:30 AM - 06:00 PM",
+    "prerequisites": "Immobilize limb. Do not bear weight. Digital X-ray slip from triage.",
+    "standardTurnaroundMins": 30
+  },
+  {
+    "department": "PATHOLOGY_LAB",
+    "name": "Central Diagnostic Blood & Pathology Lab",
+    "location": "Ground Floor, Diagnostic Corridor, Counter 4",
+    "inclusionCriteria": [
+      "Blood sample collection (CBC, LFT, KFT, Lipid Profile, Blood Sugar)",
+      "Urine routine and microscopy sample submission",
+      "Serology (Dengue, Malaria, Typhoid)"
+    ],
+    "operatingHours": "07:00 AM - 09:00 PM",
+    "prerequisites": "Fasting of 8-10 hours required for fasting blood sugar and lipid profile. Water is permitted.",
+    "standardTurnaroundMins": 45
+  },
+  {
+    "department": "RADIOLOGY_SCAN",
+    "name": "Radiology, X-Ray & Ultrasound Center",
+    "location": "Basement 1, Diagnostic Center, Rooms B-12 to B-18",
+    "inclusionCriteria": [
+      "Digital X-Rays (Chest, extremities, spine)",
+      "Ultrasound Abdomen & Pelvis",
+      "CT Scan and MRI examinations"
+    ],
+    "operatingHours": "24/7 Emergency, 08:00 AM - 08:00 PM Routine",
+    "prerequisites": "For Abdominal Ultrasound: Full bladder (drink 3-4 glasses of water 45 min prior) and 6 hours fasting.",
+    "standardTurnaroundMins": 40
+  },
+  {
+    "department": "CENTRAL_PHARMACY",
+    "name": "Outpatient Dispensary & Pharmacy",
+    "location": "Ground Floor, Exit Atrium, Counters 1-6",
+    "inclusionCriteria": [
+      "Prescription medication dispensing",
+      "Injectable medicine collection",
+      "Medical consumables and surgical dressings"
+    ],
+    "operatingHours": "24/7 Open",
+    "prerequisites": "Original doctor signed prescription token or verified digital prescription ID.",
+    "standardTurnaroundMins": 10
+  }
+]

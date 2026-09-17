@@ -377,6 +377,80 @@ export default function AdminCockpitPage() {
             </div>
           </div>
 
+          {/* Live Deterioration & Starvation Watchdog Radar */}
+          <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-r from-slate-950 via-zinc-900 to-slate-950 p-4 sm:p-5 space-y-3 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-mono font-bold text-white uppercase tracking-wider">
+                      Live Deterioration & Starvation Watchdog
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                      RAG AI ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Continuous surveillance of waiting dwell times and physiological distress triggers
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs font-mono">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  <span className="text-zinc-400">Distress Alerts:</span>
+                  <strong className="text-rose-400">{tokens.filter((t) => t.isDeteriorating).length}</strong>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span className="text-zinc-400">Starvation (&gt;40m):</span>
+                  <strong className="text-amber-400">
+                    {
+                      tokens.filter(
+                        (t) =>
+                          t.status === "WAITING" &&
+                          (t.starvationAlert || (Date.now() - new Date(t.createdAt).getTime()) > 40 * 60 * 1000)
+                      ).length
+                    }
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Bottleneck status pill row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs font-mono">
+              {queues.slice(0, 4).map((q) => {
+                const isOverloaded = q.waitingCount > 8;
+                return (
+                  <div
+                    key={q.id}
+                    className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                      isOverloaded
+                        ? "bg-rose-950/30 border-rose-800/60 text-rose-200"
+                        : "bg-zinc-950/60 border-zinc-800 text-zinc-300"
+                    }`}
+                  >
+                    <span className="truncate">{q.name}</span>
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isOverloaded
+                          ? "bg-rose-900/80 text-rose-200"
+                          : "bg-emerald-950/80 text-emerald-300"
+                      }`}
+                    >
+                      {isOverloaded ? "BOTTLENECK" : "HEALTHY"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Department Queues Grid */}
           <div>
             <h2 className="text-sm font-mono uppercase font-bold text-zinc-300 mb-3">

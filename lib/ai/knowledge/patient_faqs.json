@@ -1,0 +1,47 @@
+[
+  {
+    "faqId": "FAQ_FASTING_BLOOD_TEST",
+    "category": "FASTING",
+    "keywords": ["fasting", "empty stomach", "blood test", "sugar test", "lipid", "भूखा पेट", "खाली पेट", "खून जांच", "शुगर टेस्ट"],
+    "questionEn": "Do I need to be on an empty stomach for my blood test?",
+    "answerEn": "Yes. For Fasting Blood Sugar (FBS) and Lipid Profile tests, strict fasting of 8 to 10 hours is required. You may drink plain water, but avoid tea, coffee, milk, or breakfast. Routine tests like CBC do not require fasting.",
+    "questionHi": "क्या मुझे अपने ब्लड टेस्ट के लिए खाली पेट (भूखे पेट) आना होगा?",
+    "answerHi": "हाँ। फास्टिंग ब्लड शुगर (शुगर जांच) और लिपिड प्रोफाइल टेस्ट के लिए 8 से 10 घंटे का उपवास (खाली पेट रहना) आवश्यक है। आप सादा पानी पी सकते हैं, लेकिन चाय, कॉफी, दूध या नाश्ता न करें। सीबीसी (CBC) जैसी सामान्य जांच के लिए भूखे पेट रहने की जरूरत नहीं है।"
+  },
+  {
+    "faqId": "FAQ_ULTRASOUND_PREP",
+    "category": "IMAGING",
+    "keywords": ["ultrasound", "sonography", "usg", "urine", "bladder", "water", "अल्ट्रासाउंड", "सोनोग्राफी", "पेशाब रोकना", "पानी पीना"],
+    "questionEn": "How should I prepare for an abdominal ultrasound or scan?",
+    "answerEn": "For an Abdominal Ultrasound: 1) Fast for 4 to 6 hours before the scan. 2) Drink 3 to 4 glasses of water 45 minutes before the test and do not urinate, as a full bladder is required for clear imaging.",
+    "questionHi": "पेट के अल्ट्रासाउंड या सोनोग्राफी के लिए मुझे क्या तैयारी करनी चाहिए?",
+    "answerHi": "पेट के अल्ट्रासाउंड के लिए: 1) जांच से 4 से 6 घंटे पहले खाली पेट रहें। 2) जांच से 45 मिनट पहले 3 से 4 गिलास पानी पिएं और पेशाब न करें, क्योंकि साफ स्कैन के लिए मूत्राशय (Bladder) का भरा होना जरूरी है।"
+  },
+  {
+    "faqId": "FAQ_LAB_LOCATION_HOURS",
+    "category": "DIAGNOSTICS",
+    "keywords": ["blood test location", "pathology", "sample", "reports timing", "खून जांच कहां होगी", "ब्लड टेस्ट रूम", "पैथोलॉजी", "रिपोर्ट कब मिलेगी"],
+    "questionEn": "Where is the blood testing lab and when will I get my reports?",
+    "answerEn": "The Central Diagnostic Lab is on the Ground Floor, Diagnostic Corridor (Counter 4). Routine blood reports (CBC, Sugar) are available within 1.5 to 2 hours directly on your mobile ticket link.",
+    "questionHi": "खून जांच (ब्लड टेस्ट) कहां होगा और रिपोर्ट कब तक मिलेगी?",
+    "answerHi": "सेंट्रल पैथोलॉजी लैब ग्राउंड फ्लोर पर, डायग्नोस्टिक कॉरिडोर (काउंटर नंबर 4) में स्थित है। सामान्य ब्लड रिपोर्ट (जैसे सीबीसी और शुगर) 1.5 से 2 घंटे के भीतर सीधे आपके मोबाइल टिकट लिंक पर उपलब्ध हो जाती है।"
+  },
+  {
+    "faqId": "FAQ_PHARMACY_LOCATION",
+    "category": "PHARMACY",
+    "keywords": ["pharmacy", "medicine", "chemist", "dispensary", "दवा की दुकान", "दवाई कहां मिलेगी", "फार्मेसी"],
+    "questionEn": "Where do I collect my medicines after seeing the doctor?",
+    "answerEn": "The Central Hospital Pharmacy is located at the Ground Floor Exit Atrium, Counters 1 to 6. It operates 24/7. Please present your digital token or printed prescription.",
+    "questionHi": "डॉक्टर को दिखाने के बाद दवाइयां कहां से मिलेंगी?",
+    "answerHi": "अस्पताल की मुख्य फार्मेसी ग्राउंड फ्लोर पर मुख्य निकास द्वार (Exit Atrium) के पास, काउंटर 1 से 6 पर स्थित है। यह 24 घंटे खुली रहती है। कृपया अपना डिजिटल टोकन या पर्चा वहां दिखाएं।"
+  },
+  {
+    "faqId": "FAQ_WHAT_DOCTOR_ASKS",
+    "category": "DOCTOR_VISIT",
+    "keywords": ["doctor ask", "what to prepare", "documents", "prescription", "doctor questions", "डॉक्टर क्या पूछेंगे", "क्या कागजात चाहिए", "पुराने पर्चे"],
+    "questionEn": "What will the doctor ask me and what documents should I have ready?",
+    "answerEn": "The doctor will inquire about the exact duration of your symptoms, what triggers or relieves pain, any existing medications, and allergies. Please keep your previous prescriptions, discharge summaries, and insurance/Aadhaar card ready in hand.",
+    "questionHi": "डॉक्टर मुझसे क्या पूछेंगे और मुझे क्या कागजात तैयार रखने चाहिए?",
+    "answerHi": "डॉक्टर आपसे पूछेंगे कि तकलीफ कब से शुरू हुई, दर्द किस तरफ है, क्या आप पहले से कोई दवा ले रहे हैं और किसी दवा से कोई एलर्जी तो नहीं है। अपने पुराने पर्चे, पिछली जांच रिपोर्ट और आधार कार्ड या इंश्योरेंस कार्ड हाथ में तैयार रखें।"
+  }
+]

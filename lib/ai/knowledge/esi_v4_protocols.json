@@ -1,0 +1,228 @@
+[
+  {
+    "protocolId": "ESI_V4_SEC_3_1_RESUSCITATION",
+    "title": "Immediate Resuscitation & Life Threats",
+    "triageLevel": "LEVEL_1_RESUSCITATION",
+    "departmentType": "EMERGENCY_ROOM",
+    "vitalLimits": { "spo2Min": 88, "hrMin": 40, "hrMax": 150 },
+    "redFlags": [
+      "Unresponsive or severe altered mental status",
+      "Severe respiratory distress or cyanosis",
+      "Anaphylaxis with airway compromise",
+      "Profound shock or pulselessness",
+      "बेहोशी या सांस लेने में असमर्थता"
+    ],
+    "immediateActions": [
+      "Zero-wait immediate resuscitation bay transfer",
+      "Airway assessment and supplemental high-flow O2",
+      "Continuous cardiac telemetry and large-bore IV access"
+    ],
+    "differentialConsiderations": [
+      "Tension pneumothorax",
+      "Massive pulmonary embolism",
+      "Ventricular fibrillation / Cardiac arrest",
+      "Severe septic shock"
+    ],
+    "anticipatedOrders": [
+      "Arterial Blood Gas (ABG)",
+      "Stat Troponin & Cardiac Panel",
+      "Immediate Portable Chest X-Ray",
+      "Stat Electrolytes & Lactate"
+    ],
+    "precautionsEn": "Emergency team notified immediately. Do not leave the patient unattended. Move to Trauma/Resus Bay.",
+    "precautionsHi": "आपातकालीन टीम को तुरंत सूचित किया गया है। मरीज को अकेला न छोड़ें। तुरंत ट्रॉमा बे में ले जाएं।",
+    "keywords": ["unresponsive", "not breathing", "cardiac arrest", "unconscious", "gasping", "cyanosis", "severe anaphylaxis", "बेहोश", "सांस बंद", "गिर पड़ा"]
+  },
+  {
+    "protocolId": "ESI_V4_SEC_3_2_CHEST_PAIN",
+    "title": "Acute Coronary Syndrome & High-Risk Chest Pain",
+    "triageLevel": "LEVEL_2_EMERGENT",
+    "departmentType": "EMERGENCY_ROOM",
+    "vitalLimits": { "spo2Min": 92, "hrMax": 120, "systolicBpMax": 180 },
+    "redFlags": [
+      "Substernal chest pressure or crushing sensation",
+      "Radiation to jaw, left arm, neck, or back",
+      "Diaphoresis, nausea, dizziness, or cold clammy skin",
+      "सीने में तेज दबाव, बाएं हाथ या जबड़े में दर्द"
+    ],
+    "immediateActions": [
+      "12-Lead ECG within 10 minutes of arrival",
+      "Stat Troponin-I and CK-MB draw",
+      "Aspirin 300mg chewable stat if no contraindication"
+    ],
+    "differentialConsiderations": [
+      "ST-Elevation Myocardial Infarction (STEMI)",
+      "Aortic Dissection (check bilateral BP difference)",
+      "Acute Pulmonary Embolism",
+      "Unstable Angina"
+    ],
+    "anticipatedOrders": [
+      "12-Lead Electrocardiogram (ECG)",
+      "Serum Troponin-I (High Sensitivity)",
+      "Chest X-Ray (PA View)",
+      "Basic Metabolic Panel & CBC"
+    ],
+    "precautionsEn": "Sit still and rest. Avoid physical exertion. Do not consume food or hot beverages right now.",
+    "precautionsHi": "शांति से बैठें और कोई शारीरिक मेहनत न करें। अभी कुछ भी खाएं या पिएं नहीं।",
+    "keywords": ["chest pain", "angina", "heart attack", "radiating pain", "cold sweat", "diaphoresis", "pressure in chest", "सीने में दर्द", "छाती में दर्द", "दिल का दौरा", "पसीना आना"]
+  },
+  {
+    "protocolId": "ESI_V4_SEC_3_3_ACUTE_STROKE",
+    "title": "Acute Neurological Deficit & Suspected Stroke",
+    "triageLevel": "LEVEL_2_EMERGENT",
+    "departmentType": "EMERGENCY_ROOM",
+    "vitalLimits": { "systolicBpMax": 200 },
+    "redFlags": [
+      "Sudden unilateral facial droop, arm drift, or weakness (FAST)",
+      "Sudden slurred speech or inability to speak (Aphasia)",
+      "Sudden loss of vision or severe vertigo with ataxia",
+      "मुंह टेढ़ा होना, हाथ में कमजोरी, बोलने में लड़खड़ाहट"
+    ],
+    "immediateActions": [
+      "Activate Code Stroke protocol",
+      "Ascertain exact Last Known Well (LKW) time for thrombolysis window (<4.5 hrs)",
+      "Stat non-contrast Head CT / Brain MRI"
+    ],
+    "differentialConsiderations": [
+      "Ischemic Stroke",
+      "Intracerebral Hemorrhage (ICH)",
+      "Hypoglycemia mimic (check capillary glucose stat)",
+      "Todd's Paresis / Seizure"
+    ],
+    "anticipatedOrders": [
+      "Non-Contrast CT Brain / CT Angiogram",
+      "Point-of-Care Capillary Blood Glucose",
+      "Coagulation Profile (PT/INR, aPTT)",
+      "CBC and Electrolytes"
+    ],
+    "precautionsEn": "Keep the patient seated or elevated at 30 degrees. Give nothing by mouth (strict NPO). Note exact time symptoms began.",
+    "precautionsHi": "मरीज को 30 डिग्री के कोण पर सीधा बैठाएं। मुंह से कुछ भी खाने-पीने को न दें। लक्षण शुरू होने का सही समय याद रखें।",
+    "keywords": ["stroke", "facial droop", "slurred speech", "paralysis", "weakness one side", "aphasia", "लकवा", "फालिज", "मुंह टेढ़ा", "बोली बंद"]
+  },
+  {
+    "protocolId": "ESI_V4_SEC_4_1_ABDOMINAL_PAIN",
+    "title": "Acute Abdominal Pain & Surgical Abdomen",
+    "triageLevel": "LEVEL_3_URGENT",
+    "departmentType": "GENERAL_OPD",
+    "vitalLimits": { "tempMax": 38.5, "hrMax": 110 },
+    "redFlags": [
+      "Localized right lower quadrant pain with rebound tenderness",
+      "Severe epigastric pain radiating to the back",
+      "Persistent bilious or coffee-ground vomiting",
+      "Inability to tolerate liquids or high fever",
+      "पेट के निचले दाएं हिस्से में तेज दर्द, लगातार उल्टी"
+    ],
+    "immediateActions": [
+      "Keep patient NPO (Nil Per Os) in case emergency surgery is needed",
+      "Establish IV hydration for ongoing emesis",
+      "Abdominal ultrasound examination"
+    ],
+    "differentialConsiderations": [
+      "Acute Appendicitis",
+      "Acute Cholecystitis / Gallstones",
+      "Acute Pancreatitis",
+      "Bowel Obstruction or Perforation"
+    ],
+    "anticipatedOrders": [
+      "Ultrasound Abdomen & Pelvis",
+      "Complete Blood Count (CBC) with Differential",
+      "Serum Amylase & Lipase",
+      "Liver Function Tests (LFT)"
+    ],
+    "precautionsEn": "Do not eat or drink anything until doctor examination (strict fasting for ultrasound/surgery). Avoid painkillers that mask symptoms.",
+    "precautionsHi": "डॉक्टर की जांच तक कुछ भी न खाएं-पिएं (अल्ट्रासाउंड के लिए खाली पेट रहना जरूरी है)। पेट दर्द की बिना पर्ची की दवा न लें।",
+    "keywords": ["stomach pain", "abdominal pain", "vomiting", "appendix", "gallstone", "pancreatitis", "cramps", "पेट में दर्द", "उल्टी", "मरोड़", "दस्त", "पेट फूलना"]
+  },
+  {
+    "protocolId": "ESI_V4_SEC_4_2_PEDIATRIC_FEVER",
+    "title": "Pediatric Febrile Illness & Dehydration",
+    "triageLevel": "LEVEL_3_URGENT",
+    "departmentType": "GENERAL_OPD",
+    "vitalLimits": { "tempMax": 39.5, "hrMax": 160 },
+    "redFlags": [
+      "Infant under 3 months with fever > 38°C",
+      "Lethargy, poor feeding, sunken fontanelle",
+      "Non-blanching petechial or purpuric rash",
+      "बच्चे को तेज बुखार, सुस्ती, दूध न पीना"
+    ],
+    "immediateActions": [
+      "Assess hydration status (mucous membranes, skin turgor, wet diapers)",
+      "Oral rehydration or gentle antipyresis as ordered by pediatrician",
+      "Screen for febrile seizure history"
+    ],
+    "differentialConsiderations": [
+      "Viral Upper Respiratory / Gastroenteritis",
+      "Urinary Tract Infection (UTI)",
+      "Bacteremia / Early Sepsis",
+      "Otitis Media"
+    ],
+    "anticipatedOrders": [
+      "Complete Blood Count (CBC) & CRP",
+      "Urine Routine & Microscopy",
+      "Rapid Dengue / Malaria Serology (in endemic periods)",
+      "Serum Electrolytes"
+    ],
+    "precautionsEn": "Keep the child comfortable and lightly clothed. Offer oral rehydration fluids in small sips. Watch for extreme lethargy.",
+    "precautionsHi": "बच्चे को हल्के कपड़े पहनाएं। ORS का घोल थोड़े-थोड़े समय पर पिलाएं। तेज सुस्ती आने पर तुरंत बताएं।",
+    "keywords": ["child fever", "pediatric fever", "baby fever", "lethargic child", "not drinking milk", "बच्चे को बुखार", "शिशु बुखार", "दूध नहीं पी रहा", "सुस्त"]
+  },
+  {
+    "protocolId": "ESI_V4_SEC_4_3_ORTHO_TRAUMA",
+    "title": "Acute Musculoskeletal Injury & Extremity Trauma",
+    "triageLevel": "LEVEL_4_LESS_URGENT",
+    "departmentType": "ORTHOPEDICS",
+    "vitalLimits": { "hrMax": 105 },
+    "redFlags": [
+      "Gross extremity deformity or bone protrusion (Open fracture - escalate to L2)",
+      "Absence of distal peripheral pulse or cold limb (Neurovascular compromise)",
+      "Severe localized swelling with inability to bear weight",
+      "हड्डी टूटना, पैर या हाथ में अत्यधिक सूजन, भार न ले पाना"
+    ],
+    "immediateActions": [
+      "Temporary splinting and immobilization of the affected limb",
+      "Ice pack application and extremity elevation",
+      "Targeted multi-view digital radiography"
+    ],
+    "differentialConsiderations": [
+      "Closed Bone Fracture",
+      "High-grade Ligament Tear / Sprain",
+      "Joint Dislocation",
+      "Soft Tissue Contusion"
+    ],
+    "anticipatedOrders": [
+      "Digital X-Ray (AP and Lateral views of affected joint/bone)",
+      "Analgesic Protocol as indicated",
+      "Orthopedic Cast / Splinting procedure"
+    ],
+    "precautionsEn": "Do not attempt to put weight on the injured limb. Keep the limb elevated on a pillow and apply ice if available.",
+    "precautionsHi": "चोट लगे पैर या हाथ पर बिल्कुल भी वजन न डालें। अंग को तकिए पर ऊंचा रखें और बर्फ की सिकाई करें।",
+    "keywords": ["fracture", "broken bone", "sprain", "twisted ankle", "knee injury", "shoulder dislocation", "हड्डी टूटी", "मोच", "पैर मुड़ना", "चोट"]
+  },
+  {
+    "protocolId": "ESI_V4_SEC_5_1_ROUTINE_OPD",
+    "title": "Routine Consultation & Medication Refills",
+    "triageLevel": "LEVEL_5_NON_URGENT",
+    "departmentType": "GENERAL_OPD",
+    "vitalLimits": {},
+    "redFlags": [
+      "None. Patient is clinically stable with no acute physiological derangements"
+    ],
+    "immediateActions": [
+      "Direct to General Outpatient consultation queue",
+      "Collect past treatment records and medication lists"
+    ],
+    "differentialConsiderations": [
+      "Chronic Disease Follow-up (Hypertension, Diabetes mellitus)",
+      "Mild seasonal coryza / URI without distress",
+      "Administrative medical fitness certificate"
+    ],
+    "anticipatedOrders": [
+      "Routine Blood Pressure Check",
+      "Fasting Blood Sugar / HbA1c (if diabetic follow-up)",
+      "Prescription Renewal"
+    ],
+    "precautionsEn": "Keep all past prescriptions, discharge summaries, and previous lab reports organized for the doctor.",
+    "precautionsHi": "डॉक्टर को दिखाने के लिए अपने पुराने पर्चे, दवाइयां और पुरानी जांच रिपोर्ट साथ में तैयार रखें।",
+    "keywords": ["routine checkup", "bp check", "diabetes checkup", "prescription renewal", "mild cold", "fever since 1 day mild", "दवा लिखवानी है", "रूटीन चेकअप", "बीपी चेक"]
+  }
+]

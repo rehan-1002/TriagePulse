@@ -28,6 +28,7 @@ import { Panel } from "@/components/ui/Panel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
+import { DoctorClinicalCopilot } from "@/components/counter/DoctorClinicalCopilot";
 
 interface CounterDetail {
   id: string;
@@ -644,6 +645,23 @@ export default function CounterConsolePage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Doctor RAG Clinical Copilot & 1-Click Order Checklist */}
+                  <DoctorClinicalCopilot
+                    token={currentToken}
+                    onTransferToLab={() =>
+                      handleCounterAction("TRANSFER", {
+                        targetDepartment: "PATHOLOGY_LAB",
+                        targetStage: "DIAGNOSTICS_LAB",
+                      })
+                    }
+                    onTransferToRadiology={() =>
+                      handleCounterAction("TRANSFER", {
+                        targetDepartment: "RADIOLOGY_SCAN",
+                        targetStage: "DIAGNOSTICS_IMAGING",
+                      })
+                    }
+                  />
 
                   {/* Primary Finish / Complete Serving Action */}
                   <Button
