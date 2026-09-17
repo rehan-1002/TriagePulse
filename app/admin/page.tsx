@@ -41,7 +41,7 @@ export default function AdminCockpitPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
-  const [aiReport, setAiReport] = useState<string | null>(null);
+  const [aiReport, setAiReport] = useState<any | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [tokenSearch, setTokenSearch] = useState<string>("");
   const [tokenQueueFilter, setTokenQueueFilter] = useState<string>("ALL");
@@ -784,8 +784,81 @@ export default function AdminCockpitPage() {
             }
           >
             {aiReport ? (
-              <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 font-mono text-xs leading-relaxed text-zinc-200 whitespace-pre-wrap">
-                {aiReport}
+              <div className="space-y-4 font-mono text-xs">
+                {/* Risk Level & Timestamp Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl border bg-zinc-950 border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                      Hospital Flow Risk:
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded text-xs font-bold ${
+                        (aiReport.riskLevel || "").toUpperCase() === "CRITICAL"
+                          ? "bg-red-950/80 border border-red-700 text-red-300 animate-pulse"
+                          : (aiReport.riskLevel || "").toUpperCase() === "MODERATE"
+                          ? "bg-amber-950/80 border border-amber-700 text-amber-300"
+                          : "bg-emerald-950/80 border border-emerald-700 text-emerald-300"
+                      }`}
+                    >
+                      {aiReport.riskLevel || "LOW"}
+                    </span>
+                  </div>
+                  {aiReport.timestamp && (
+                    <span className="text-[10px] text-zinc-500">
+                      Generated: {new Date(aiReport.timestamp).toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
+
+                {/* Bottleneck Summary */}
+                <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 space-y-1.5">
+                  <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider block">
+                    Throughput & Bottleneck Assessment
+                  </span>
+                  <p className="text-zinc-200 leading-relaxed text-xs">
+                    {aiReport.bottleneckSummary ||
+                      aiReport.executiveSummary ||
+                      (typeof aiReport === "string" ? aiReport : JSON.stringify(aiReport, null, 2))}
+                  </p>
+                </div>
+
+                {/* Queue Starvation & Deterioration Directives */}
+                {Array.isArray(aiReport.starvationDirectives) && aiReport.starvationDirectives.length > 0 && (
+                  <div className="p-4 rounded-xl border border-amber-800/40 bg-amber-950/20 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-400 font-bold uppercase text-[10px] tracking-wider">
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>Queue Starvation & Deterioration Directives:</span>
+                    </div>
+                    <ul className="space-y-1 text-amber-200/90 list-disc list-inside">
+                      {aiReport.starvationDirectives.map((d: string, idx: number) => (
+                        <li key={idx}>{d}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Recommended Operational Actions */}
+                {Array.isArray(aiReport.operationalActions || aiReport.recommendations) && (
+                  <div className="p-4 rounded-xl border border-sky-800/40 bg-sky-950/20 space-y-2">
+                    <div className="flex items-center gap-2 text-sky-400 font-bold uppercase text-[10px] tracking-wider">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Operational Directives:</span>
+                    </div>
+                    <ul className="space-y-1 text-sky-200/90 list-disc list-inside">
+                      {(aiReport.operationalActions || aiReport.recommendations).map((a: string, idx: number) => (
+                        <li key={idx}>{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Congestion & Stage Dwell Analysis */}
+                {aiReport.congestionAnalysis && (
+                  <div className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-[11px] text-zinc-400 leading-relaxed">
+                    <span className="text-zinc-500 uppercase font-bold mr-1">Stage Dwell Times:</span>
+                    <span>{aiReport.congestionAnalysis}</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="py-12 text-center text-xs font-mono text-zinc-500">
