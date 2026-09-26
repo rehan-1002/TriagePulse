@@ -88,29 +88,101 @@ export default function PublicDisplayPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Web Speech API Voice Announcement
+  // Synthesize dual-tone hospital chime via Web Audio API (pre-speech attention alert)
+  const playHospitalChime = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+
+      // Tone 1: 587.33 Hz (D5) - Bell Ding
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0.35, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.45);
+
+      // Tone 2: 880 Hz (A5) - High Dong
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.22);
+      gain2.gain.setValueAtTime(0.4, now + 0.22);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.22);
+      osc2.stop(now + 0.85);
+    } catch (e) {
+      console.warn("Audio Context chime failed:", e);
+    }
+  }, []);
+
+  // Web Speech API Voice Announcement with Chime & Chrome Windows fix
   const announceCall = useCallback(
     (text: string, eventId: string) => {
       if (!isAudioEnabled) return;
-      if (announcedEventIdsRef.current.has(eventId)) return; // Prevent duplicate speech
-      announcedEventIdsRef.current.add(eventId);
+      if (eventId && announcedEventIdsRef.current.has(eventId)) return; // Prevent duplicate speech
+      if (eventId) announcedEventIdsRef.current.add(eventId);
 
+      // 1. Play auditory chime immediately
+      playHospitalChime();
+
+      // 2. Synthesize vocal speech after chime intro
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         try {
-          // Cancel any ongoing speech
           window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.rate = 0.95; // Clear operational cadence
-          utterance.pitch = 1.0;
-          utterance.volume = 1.0;
-          window.speechSynthesis.speak(utterance);
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+
+          setTimeout(() => {
+            try {
+              window.speechSynthesis.resume();
+              const utterance = new SpeechSynthesisUtterance(text);
+              utterance.rate = 0.92; // Clear operational cadence
+              utterance.pitch = 1.0;
+              utterance.volume = 1.0;
+
+              const voices = window.speechSynthesis.getVoices();
+              const preferredVoice = voices.find(
+                (v) =>
+                  v.lang.startsWith("en-IN") ||
+                  v.lang.startsWith("en-US") ||
+                  v.lang.startsWith("en-GB")
+              );
+              if (preferredVoice) utterance.voice = preferredVoice;
+
+              window.speechSynthesis.speak(utterance);
+            } catch (err) {
+              console.warn("Speech Synthesis speak error:", err);
+            }
+          }, 450);
         } catch (err) {
           console.warn("Speech Synthesis error:", err);
         }
       }
     },
-    [isAudioEnabled]
+    [isAudioEnabled, playHospitalChime]
   );
+
+  // Manual Test Audio Trigger
+  const handleTestAudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHasInteracted(true);
+    setIsAudioEnabled(true);
+    announceCall("Attention: Patient A 101, please proceed to Doctor Cabin 1.", `test_${Date.now()}`);
+  };
 
   // Fetch initial active counters & called tokens
   const fetchDisplayState = useCallback(async () => {
@@ -159,9 +231,14 @@ export default function PublicDisplayPage() {
       if (callFound) {
         setCurrentCall(callFound);
         setRecentCalls((prev) => {
-          if (prev.length === 0 && callFound) return [callFound];
+          if (!prev.some((c) => c.displayNumber === callFound!.displayNumber)) {
+            return [callFound!, ...prev.slice(0, 4)];
+          }
           return prev;
         });
+      } else {
+        // No counter is actively serving or calling a token — clear hero view
+        setCurrentCall(null);
       }
     } catch (err) {
       console.error("Failed to load display state:", err);
@@ -192,10 +269,24 @@ export default function PublicDisplayPage() {
           setCurrentCall(newCall);
           setRecentCalls((prev) => [newCall, ...prev.filter((c) => c.displayNumber !== token.displayNumber).slice(0, 5)]);
 
-          // Trigger clinical speech announcement: "Patient P T 104, please proceed to Doctor Cabin 2."
+          // Trigger clinical speech announcement with hospital chime
           const speechText = formatClinicalSpeechAnnouncement(token.displayNumber, stationName);
           announceCall(speechText, event.id);
         }
+      } else if (
+        event.type === "TOKEN_COMPLETED" ||
+        event.type === "TOKEN_NO_SHOW" ||
+        event.type === "TOKEN_CANCELLED" ||
+        event.type === "TOKEN_TRANSFERRED"
+      ) {
+        // Immediately remove completed/abandoned token from hero view
+        setCurrentCall((prev) => {
+          if (prev && (!event.tokenId || prev.tokenId === event.tokenId)) {
+            return null;
+          }
+          return prev;
+        });
+        fetchDisplayState();
       } else {
         fetchDisplayState();
       }
@@ -248,6 +339,16 @@ export default function PublicDisplayPage() {
             </span>
           </div>
 
+          {/* Test Audio Button */}
+          <button
+            onClick={handleTestAudio}
+            title="Test hospital chime and voice announcement"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs font-mono text-emerald-300 hover:bg-emerald-900 hover:text-white transition"
+          >
+            <Bell className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline">Test Audio</span>
+          </button>
+
           {/* Audio Announce Toggle */}
           <button
             onClick={(e) => {
@@ -273,6 +374,31 @@ export default function PublicDisplayPage() {
           <ConnectionBadge state={connectionState} />
         </div>
       </div>
+
+      {/* Browser Autoplay Standby Prompt */}
+      {!hasInteracted && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setHasInteracted(true);
+            playHospitalChime();
+          }}
+          className="cursor-pointer bg-emerald-950/80 border border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-4 text-emerald-200 text-xs sm:text-sm font-mono animate-pulse hover:bg-emerald-900/80 transition-all shadow-[0_0_25px_rgba(16,185,129,0.2)]"
+        >
+          <div className="flex items-center gap-3">
+            <Volume2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>
+              <strong>Audio Standby:</strong> Click anywhere on this screen to activate live hospital chime & vocal call-outs.
+            </span>
+          </div>
+          <button
+            onClick={handleTestAudio}
+            className="px-3 py-1 bg-emerald-500 text-black font-bold rounded-lg text-xs tracking-wider shrink-0 hover:bg-emerald-400 transition"
+          >
+            ACTIVATE & TEST
+          </button>
+        </div>
+      )}
 
       {/* Main Display Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto">
