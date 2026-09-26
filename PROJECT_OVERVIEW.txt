@@ -21,9 +21,6 @@
   Patel Afifa         –  AI Intelligence Layer, Gemini Operational
                          Reports & Cohere Intent Triage
 
-  Poonawala Mansoor   –  UI/UX & Interactive Design, GSAP Crowd
-                         Canvas, Audio Signage & Telemetry
-
   Preetam Pandey      –  Backend Systems, Database Schema Design,
                          API Architecture & Validation
 

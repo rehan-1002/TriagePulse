@@ -70,6 +70,9 @@ export default function PublicDisplayPage() {
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
   const [hasInteracted, setHasInteracted] = useState<boolean>(false);
   const announcedEventIdsRef = useRef<Set<string>>(new Set());
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   // Update clock every second
   useEffect(() => {
@@ -88,13 +91,38 @@ export default function PublicDisplayPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Synthesize dual-tone hospital chime via Web Audio API (pre-speech attention alert)
+  // Pre-fetch and cache available speech synthesis voices for iOS Safari / Chrome
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const loadVoices = () => {
+      try {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+          availableVoicesRef.current = voices;
+        }
+      } catch (err) {
+        console.warn("Error loading speech voices:", err);
+      }
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, []);
+
+  // Synthesize dual-tone hospital chime via persistent Web Audio API context
   const playHospitalChime = useCallback(() => {
     if (typeof window === "undefined") return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
       if (ctx.state === "suspended") {
         ctx.resume().catch(() => {});
       }
@@ -105,7 +133,7 @@ export default function PublicDisplayPage() {
       const gain1 = ctx.createGain();
       osc1.type = "sine";
       osc1.frequency.setValueAtTime(587.33, now);
-      gain1.gain.setValueAtTime(0.35, now);
+      gain1.gain.setValueAtTime(0.4, now);
       gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
@@ -117,7 +145,7 @@ export default function PublicDisplayPage() {
       const gain2 = ctx.createGain();
       osc2.type = "sine";
       osc2.frequency.setValueAtTime(880, now + 0.22);
-      gain2.gain.setValueAtTime(0.4, now + 0.22);
+      gain2.gain.setValueAtTime(0.45, now + 0.22);
       gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
       osc2.connect(gain2);
       gain2.connect(ctx.destination);
@@ -128,7 +156,7 @@ export default function PublicDisplayPage() {
     }
   }, []);
 
-  // Web Speech API Voice Announcement with Chime & Chrome Windows fix
+  // Web Speech API Voice Announcement with Chime & Safari/Chrome garbage-collection guard
   const announceCall = useCallback(
     (text: string, eventId: string) => {
       if (!isAudioEnabled) return;
@@ -141,7 +169,6 @@ export default function PublicDisplayPage() {
       // 2. Synthesize vocal speech after chime intro
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         try {
-          window.speechSynthesis.cancel();
           if (window.speechSynthesis.paused) {
             window.speechSynthesis.resume();
           }
@@ -154,7 +181,11 @@ export default function PublicDisplayPage() {
               utterance.pitch = 1.0;
               utterance.volume = 1.0;
 
-              const voices = window.speechSynthesis.getVoices();
+              const voices =
+                availableVoicesRef.current.length > 0
+                  ? availableVoicesRef.current
+                  : window.speechSynthesis.getVoices();
+
               const preferredVoice = voices.find(
                 (v) =>
                   v.lang.startsWith("en-IN") ||
@@ -162,6 +193,17 @@ export default function PublicDisplayPage() {
                   v.lang.startsWith("en-GB")
               );
               if (preferredVoice) utterance.voice = preferredVoice;
+
+              // Retain utterance reference on ref & window so iOS Safari does not garbage-collect it mid-sentence
+              activeUtteranceRef.current = utterance;
+              (window as any).__lastDisplayUtterance = utterance;
+
+              utterance.onend = () => {
+                activeUtteranceRef.current = null;
+              };
+              utterance.onerror = () => {
+                activeUtteranceRef.current = null;
+              };
 
               window.speechSynthesis.speak(utterance);
             } catch (err) {
@@ -176,12 +218,46 @@ export default function PublicDisplayPage() {
     [isAudioEnabled, playHospitalChime]
   );
 
+  // Permanent Audio Engine Unlock (primes Web Audio & Speech on first user touch)
+  const unlockAudioEngine = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        if (!audioCtxRef.current) {
+          audioCtxRef.current = new AudioCtx();
+        }
+        if (audioCtxRef.current.state === "suspended") {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+        // Warm up audio buffer for iOS WebKit
+        const buffer = audioCtxRef.current.createBuffer(1, 1, 22050);
+        const src = audioCtxRef.current.createBufferSource();
+        src.buffer = buffer;
+        src.connect(audioCtxRef.current.destination);
+        src.start(0);
+      }
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.resume();
+        availableVoicesRef.current = window.speechSynthesis.getVoices();
+      }
+
+      setHasInteracted(true);
+      setIsAudioEnabled(true);
+      playHospitalChime();
+    } catch (err) {
+      console.warn("Error unlocking audio engine:", err);
+    }
+  }, [playHospitalChime]);
+
   // Manual Test Audio Trigger
   const handleTestAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setHasInteracted(true);
-    setIsAudioEnabled(true);
-    announceCall("Attention: Patient A 101, please proceed to Doctor Cabin 1.", `test_${Date.now()}`);
+    unlockAudioEngine();
+    setTimeout(() => {
+      announceCall("Attention: Patient A 101, please proceed to Doctor Cabin 1.", `test_${Date.now()}`);
+    }, 200);
   };
 
   // Fetch initial active counters & called tokens
@@ -311,13 +387,13 @@ export default function PublicDisplayPage() {
 
   return (
     <div
-      onClick={() => setHasInteracted(true)}
-      className="min-h-[85vh] flex flex-col justify-between space-y-8 max-w-7xl mx-auto select-none"
+      onClick={unlockAudioEngine}
+      className="min-h-[85vh] flex flex-col justify-between space-y-8 max-w-7xl mx-auto select-none px-3 sm:px-6"
     >
       {/* Top TV Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-zinc-800 pb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center shrink-0">
             <Building className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
@@ -330,11 +406,11 @@ export default function PublicDisplayPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6">
           {/* Digital Clock */}
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800">
+          <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800">
             <Clock className="w-4 h-4 text-zinc-400" />
-            <span className="font-mono text-xl font-bold tracking-widest text-zinc-100 tabular-nums">
+            <span className="font-mono text-base sm:text-xl font-bold tracking-widest text-zinc-100 tabular-nums">
               {currentTime || "00:00:00"}
             </span>
           </div>
@@ -343,10 +419,10 @@ export default function PublicDisplayPage() {
           <button
             onClick={handleTestAudio}
             title="Test hospital chime and voice announcement"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs font-mono text-emerald-300 hover:bg-emerald-900 hover:text-white transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs font-mono text-emerald-300 hover:bg-emerald-900 hover:text-white transition"
           >
-            <Bell className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline">Test Audio</span>
+            <Bell className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Test Chime</span>
           </button>
 
           {/* Audio Announce Toggle */}
@@ -354,18 +430,18 @@ export default function PublicDisplayPage() {
             onClick={(e) => {
               e.stopPropagation();
               setIsAudioEnabled(!isAudioEnabled);
-              setHasInteracted(true);
+              if (!hasInteracted) unlockAudioEngine();
             }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white"
           >
             {isAudioEnabled ? (
               <>
-                <Volume2 className="w-4 h-4 text-emerald-400" />
+                <Volume2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="hidden sm:inline">Voice ON</span>
               </>
             ) : (
               <>
-                <VolumeX className="w-4 h-4 text-zinc-500" />
+                <VolumeX className="w-4 h-4 text-zinc-500 shrink-0" />
                 <span className="hidden sm:inline">Voice Muted</span>
               </>
             )}
@@ -375,28 +451,42 @@ export default function PublicDisplayPage() {
         </div>
       </div>
 
-      {/* Browser Autoplay Standby Prompt */}
-      {!hasInteracted && (
+      {/* Browser Autoplay Standby Prompt / Live Status */}
+      {!hasInteracted ? (
         <div
           onClick={(e) => {
             e.stopPropagation();
-            setHasInteracted(true);
-            playHospitalChime();
+            unlockAudioEngine();
           }}
-          className="cursor-pointer bg-emerald-950/80 border border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-4 text-emerald-200 text-xs sm:text-sm font-mono animate-pulse hover:bg-emerald-900/80 transition-all shadow-[0_0_25px_rgba(16,185,129,0.2)]"
+          className="cursor-pointer bg-gradient-to-r from-emerald-950/90 via-emerald-900/80 to-emerald-950/90 border-2 border-emerald-500/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-emerald-200 text-xs sm:text-sm font-mono animate-pulse hover:border-emerald-400 transition-all shadow-[0_0_35px_rgba(16,185,129,0.25)]"
         >
-          <div className="flex items-center gap-3">
-            <Volume2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span>
-              <strong>Audio Standby:</strong> Click anywhere on this screen to activate live hospital chime & vocal call-outs.
-            </span>
+          <div className="flex items-center gap-3 text-left">
+            <div className="p-2 rounded-xl bg-emerald-500 text-black shrink-0 animate-bounce">
+              <Volume2 className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-white block text-sm sm:text-base">
+                Tap anywhere to unlock iPad / Screen Audio
+              </span>
+              <span className="text-emerald-300/80 text-xs">
+                Unlocks acoustic chimes & vocal announcements. Audio runs 100% hands-free and automatic after this tap!
+              </span>
+            </div>
           </div>
           <button
             onClick={handleTestAudio}
-            className="px-3 py-1 bg-emerald-500 text-black font-bold rounded-lg text-xs tracking-wider shrink-0 hover:bg-emerald-400 transition"
+            className="w-full sm:w-auto px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-black font-mono font-bold rounded-xl text-xs tracking-wider shrink-0 shadow-lg transition"
           >
-            ACTIVATE & TEST
+            TAP TO ACTIVATE AUDIO ⚡
           </button>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 px-3 py-1.5 flex items-center justify-between text-xs font-mono text-emerald-400">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Automatic Audio System Active • Calling out patient tokens live</span>
+          </div>
+          <span className="text-[11px] text-zinc-500 hidden sm:inline">iPadOS / WebKit Audio Context Live</span>
         </div>
       )}
 

@@ -104,13 +104,13 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     >
       {theme === "dark" ? (
         <>
-          <Sun className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-[11px] font-semibold text-zinc-200">Light</span>
+          <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="text-[11px] font-semibold text-zinc-200 hidden sm:inline">Light</span>
         </>
       ) : (
         <>
-          <Moon className="w-3.5 h-3.5 text-indigo-600" />
-          <span className="text-[11px] font-semibold text-zinc-800">Dark</span>
+          <Moon className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+          <span className="text-[11px] font-semibold text-zinc-800 hidden sm:inline">Dark</span>
         </>
       )}
     </button>

@@ -394,7 +394,7 @@ export default function VisitorMobilePassPage() {
   const currentStepIndex = getStageIndex(token.currentStage);
 
   return (
-    <div className="max-w-md mx-auto space-y-5 sm:space-y-6 pb-12">
+    <div className="max-w-md mx-auto space-y-5 sm:space-y-6 pb-12 px-3 sm:px-0">
       {/* Top Header & Connection Badge */}
       <div className="flex items-center justify-between">
         <Link

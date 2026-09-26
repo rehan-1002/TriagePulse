@@ -37,18 +37,18 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white overflow-x-hidden transition-colors duration-300">
         {/* Global Operational Top Bar */}
-        <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-black/90 backdrop-blur-md px-4 py-2.5 transition-colors duration-300">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Link href="/" className="flex items-center gap-2 group">
-                <div className="w-7 h-7 rounded bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors">
+        <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 transition-colors duration-300">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group">
+                <div className="w-7 h-7 rounded bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors shrink-0">
                   <Activity className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <span className="font-mono text-sm font-bold tracking-wider text-zinc-900 dark:text-white">
+                  <span className="font-mono text-xs sm:text-sm font-bold tracking-wider text-zinc-900 dark:text-white">
                     TRIAGEPULSE
                   </span>
-                  <span className="text-[10px] font-mono text-zinc-500 ml-1.5 uppercase hidden sm:inline">
+                  <span className="text-[10px] font-mono text-zinc-500 ml-1.5 uppercase hidden lg:inline">
                     Clinical OS v2.4
                   </span>
                 </div>
@@ -56,40 +56,44 @@ export default function RootLayout({
             </div>
 
             {/* Navigation Tabs */}
-            <nav className="flex items-center gap-1 sm:gap-2">
+            <nav className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               <Link
                 href="/join"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
+                title="Patient Intake (/join)"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
               >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Patient Intake</span>
+                <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Patient Intake</span>
               </Link>
 
               <Link
                 href="/counter"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
+                title="Doctor Cabin (/counter)"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
               >
-                <Monitor className="w-3.5 h-3.5" />
-                <span>Doctor Cabin</span>
+                <Monitor className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Doctor Cabin</span>
               </Link>
 
               <Link
                 href="/admin"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
+                title="Clinical Admin (/admin)"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-colors"
               >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Clinical Admin</span>
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Clinical Admin</span>
               </Link>
 
               <Link
                 href="/display"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-300 dark:hover:border-emerald-700/80 transition-colors"
+                title="OPD Signage TV (/display)"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-300 dark:hover:border-emerald-700/80 transition-colors"
               >
-                <Tv className="w-3.5 h-3.5" />
-                <span>OPD Signage TV</span>
+                <Tv className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">OPD Signage TV</span>
               </Link>
 
-              <div className="ml-1 pl-1.5 border-l border-zinc-200 dark:border-zinc-800">
+              <div className="ml-0.5 sm:ml-1 pl-1 sm:pl-1.5 border-l border-zinc-200 dark:border-zinc-800 shrink-0">
                 <ThemeToggle />
               </div>
             </nav>
