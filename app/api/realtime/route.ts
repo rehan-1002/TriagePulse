@@ -33,14 +33,7 @@ export async function GET(request: NextRequest) {
 
       // Subscribe to live event bus
       const unsubscribe = realtimeBus.subscribe((event: QueueEventPayload) => {
-        // Optional client filtering
-        if (filterTokenId && event.tokenId && event.tokenId !== filterTokenId) {
-          // Allow general queue changes (like cancelled/promoted) to update positions even if tokenId differs
-          if (event.type !== "TOKEN_CANCELLED" && event.type !== "EMERGENCY_PROMOTED" && event.type !== "TOKEN_CALLED") {
-            return;
-          }
-        }
-
+        // Stream all events to subscribers to guarantee complete queue state synchronization
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
         } catch (err) {

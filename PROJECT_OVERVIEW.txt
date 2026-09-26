@@ -1,0 +1,573 @@
+
+================================================================================
+  ████████╗██████╗ ██╗ █████╗  ██████╗ ███████╗██████╗ ██╗   ██╗██╗     ███████╗███████╗
+     ██╔══╝██╔══██╗██║██╔══██╗██╔════╝ ██╔════╝██╔══██╗██║   ██║██║     ██╔════╝██╔════╝
+     ██║   ██████╔╝██║███████║██║  ███╗█████╗  ██████╔╝██║   ██║██║     ███████╗█████╗
+     ██║   ██╔══██╗██║██╔══██║██║   ██║██╔══╝  ██╔═══╝ ██║   ██║██║     ╚════██║██╔══╝
+     ██║   ██║  ██║██║██║  ██║╚██████╔╝███████╗██║     ╚██████╔╝███████╗███████║███████╗
+     ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝      ╚═════╝ ╚══════╝╚══════╝╚══════╝
+================================================================================
+
+  Next-Generation AI Real-Time Hospital Queue & Triage Orchestration Platform
+  MUSA CodeX Hackathon 2025 Submission
+
+================================================================================
+  TEAM
+================================================================================
+
+  Rehan Ansari        –  Full-Stack Architecture, Real-Time Engine,
+                         Next.js 15 & Supabase Pipeline
+
+  Patel Afifa         –  AI Intelligence Layer, Gemini Operational
+                         Reports & Cohere Intent Triage
+
+  Poonawala Mansoor   –  UI/UX & Interactive Design, GSAP Crowd
+                         Canvas, Audio Signage & Telemetry
+
+  Preetam Pandey      –  Backend Systems, Database Schema Design,
+                         API Architecture & Validation
+
+  Nomaan Ali Shaikh   –  QA & Testing, Security Hardening,
+                         Deployment & DevOps Pipeline
+
+================================================================================
+  1. THE PROBLEM
+================================================================================
+
+  Physical hospitals — and institutions like universities, banks, and civic
+  bureaus — suffer from six interlocking, daily failures:
+
+  [1] LOBBY CONGESTION
+      Patients crowd hallways for hours. A pregnant woman and a cardiac
+      patient stand in the exact same unorganised line.
+
+  [2] STATIC & OPAQUE WAIT TIMES
+      Paper tokens and static LED boards give zero visibility. Patients
+      have no idea if they are 5 minutes or 2 hours away from being seen.
+
+  [3] EMERGENCY TRIAGE BLINDSPOT  ← the most dangerous failure
+      A patient with acute chest pain waits behind someone getting a
+      routine prescription refill. There is no automated mechanism to
+      detect medical urgency from a patient's spoken symptoms.
+
+  [4] STAFF IMBALANCE
+      Doctors and counter staff have no real-time view of departmental
+      load. Some counters sit idle while other queues overflow.
+
+  [5] NO AUDIT TRAIL
+      Paper systems leave no verifiable record of service events — a
+      critical failure for hospital governance and medico-legal compliance.
+
+  [6] LANGUAGE & LITERACY BARRIERS
+      Existing kiosk systems assume literacy and English, failing the
+      majority of patients who speak Hindi or regional languages.
+
+================================================================================
+  2. THE SOLUTION
+================================================================================
+
+  TriagePulse transforms the entire patient journey into a zero-hardware,
+  AI-orchestrated, voice-first digital experience.
+
+  A single QR code poster replaces the entire reception kiosk.
+
+  HOW IT WORKS — STEP BY STEP:
+
+  Step 1  Patient scans the QR code on arrival.
+          Opens instantly in any mobile browser.
+          No app download. No login. No hardware needed.
+
+  Step 2  Patient speaks their symptoms in Hindi or English.
+          Web Speech API transcribes in real-time.
+          Illiterate and elderly patients are fully included.
+
+  Step 3  AI Clinical Triage runs automatically.
+          The RAG engine evaluates the complaint against verified
+          ESI v4 Emergency Severity Index protocols.
+          Assigns triage Level 1–5 and routes to the correct department.
+          Generates personalised precautions and anticipated tests.
+
+  Step 4  A live mobile pass is issued at /ticket/[id].
+          Shows real-time queue position, ETA countdown, precautions,
+          anticipated tests, and a bilingual AI chatbot for questions.
+
+  Step 5  Staff calls the next token in the Operator Cockpit.
+          One click triggers an audio chime, updates all screens,
+          and the TV board announces the token name aloud via TTS.
+
+  Step 6  Admin gets live Gemini AI operational reports.
+          Bottleneck analysis, starvation alerts (patients waiting
+          >45 min), and tactical staff reallocation directives.
+
+================================================================================
+  3. WHY TRIAGEPULSE IS BETTER THAN EXISTING SOLUTIONS
+================================================================================
+
+  FEATURE                          TriagePulse   Qtrac/Qmatic   Waitwhile   Paper
+  ─────────────────────────────────────────────────────────────────────────────────
+  Zero hardware required               YES           NO             NO        YES
+  ESI v4 Clinical AI Triage            YES           NO             NO         NO
+  Voice intake in Hindi                YES           NO             NO         NO
+  Sub-second WebSocket sync            YES           NO          Partial       NO
+  Doctor Clinical Copilot (RAG)        YES           NO             NO         NO
+  Bilingual patient chatbot            YES           NO             NO         NO
+  AI admin operational reports         YES           NO          Basic only    NO
+  Emergency escalation workflow        YES           NO             NO         NO
+  Immutable audit event ledger         YES        Partial           NO         NO
+  Offline AI fallback                  YES           NO             NO        N/A
+
+  Key differentiator: TriagePulse is the only system that detects clinical
+  urgency from natural language symptoms in real-time, using verified medical
+  protocols — not a generic chatbot.
+
+================================================================================
+  4. TECHNOLOGY STACK
+================================================================================
+
+  FRONTEND
+  ─────────────────────────────────────────────────────────────────────────────
+  Next.js 15 (App Router)    React Server Components, streaming SSR,
+                             edge routing and API route handlers
+
+  React 19 + TypeScript 5    Concurrent rendering, strict end-to-end
+                             type safety across every layer
+
+  Tailwind CSS 3.4           Custom dark cybernetic design tokens,
+                             glassmorphism, glow utilities
+
+  GSAP 3.15 + ScrollTrigger  Interactive crowd simulation on the
+                             landing page canvas
+
+  Framer Motion 12           Spring micro-animations, smooth ticket
+                             and queue position transitions
+
+  NumberFlow React           Mechanical odometer-style digit transitions
+                             for live queue position counter
+
+  Lucide Icons               Lightweight SVG icon set
+
+  BACKEND & DATABASE
+  ─────────────────────────────────────────────────────────────────────────────
+  Prisma ORM 6.3             Type-safe query building, ACID transactions,
+                             migration management, relation modeling
+
+  PostgreSQL (Supabase)      High-performance transactional persistence
+                             with connection pooling (pgBouncer)
+
+  Supabase Realtime          WebSocket channels for sub-second
+                             cross-client state synchronization
+
+  Zod 3.24                   Runtime schema validation and input
+                             sanitization on every API route
+
+  isomorphic-dompurify       XSS neutralization on all visitor inputs
+
+  QRCode (npm)               Dynamic QR code generation for visitor
+                             check-in posters
+
+  Web Speech API             Native browser Text-to-Speech for TV
+                             signage and patient voice guidance
+
+  ARTIFICIAL INTELLIGENCE
+  ─────────────────────────────────────────────────────────────────────────────
+  Google Gemini 1.5 Flash    Live clinical bottleneck watchdog and
+  (@google/generative-ai)    operational flow report generation
+
+  Cohere NLP API             Semantic intent matching and department
+                             triage routing from natural language
+
+  Custom RAG Engine          ESI v4 protocol retrieval — zero
+  (lib/ai/rag.ts)            hallucination, fully grounded, offline-capable
+
+  Custom TF-IDF Vector Store Similarity search across ESI protocols,
+  (lib/ai/vectorStore.ts)    Department SOPs, and Patient FAQs
+
+  SECURITY
+  ─────────────────────────────────────────────────────────────────────────────
+  Cloudflare Turnstile       Bot-flood protection at the edge
+  DOMPurify                  XSS attack neutralization
+  Prisma Transactions        Race condition elimination on state changes
+  Zod Validation             Malformed request rejection
+  Session Isolation          Cross-session ticket manipulation prevention
+
+================================================================================
+  5. HOW EACH PANEL WORKS
+================================================================================
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ PANEL 1 — Landing Page  ( / )                                            │
+  └──────────────────────────────────────────────────────────────────────────┘
+  A cinematic entry point. GSAP ScrollTrigger animates an interactive crowd
+  simulation. Scroll-driven story narrates the problem then the solution.
+  Displays a QR code for visitor check-in entry. Leads to /join.
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ PANEL 2 — Voice Intake Modal  ( VoiceIntakeModal.tsx )                   │
+  └──────────────────────────────────────────────────────────────────────────┘
+  Patient taps a large pulsing microphone button and speaks their symptoms
+  in Hindi or English. The browser's SpeechRecognition API transcribes live.
+
+  The transcript goes to /api/ai/voice-intake where:
+    → The RAG engine runs the ESI v4 triage cascade
+    → Assigns Level 1–5 urgency and target department
+    → Creates an ACID-safe token in PostgreSQL via Prisma
+    → Generates precautions, anticipated tests, and a voice script
+
+  The result screen shows the token number, triage level, department,
+  precautions, and expected tests. The system reads everything back aloud
+  in the patient's chosen language. Audio can be replayed anytime.
+
+  Elderly or illiterate patients register without typing a single character.
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ PANEL 3 — Visitor Live Pass  ( /ticket/[id] )                            │
+  └──────────────────────────────────────────────────────────────────────────┘
+  The patient's real-time mobile companion. Updates via Supabase WebSocket.
+
+  Features:
+  → Animated queue position counter (smooth odometer digit transitions)
+  → Dynamic ETA countdown (recalculates as counters process patients)
+  → Green flash + vibration when token is CALLED
+  → PatientCareAssistant panel showing:
+     – Care precautions specific to their complaint
+     – Tests the doctor is likely to order
+     – Quick-tap bilingual FAQ chips (Hindi + English)
+     – Full AI chatbot — type or speak any question
+     – Audio replay of the voice guidance script
+  → Emergency escalation button — requests priority upgrade instantly
+    Staff are notified in real-time and can approve or reject
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ PANEL 4 — Staff Operator Cockpit  ( /counter )                           │
+  └──────────────────────────────────────────────────────────────────────────┘
+  Staff selects their counter number (1–6). Live queue shows all waiting
+  tokens with triage level, position, chief complaint, and ETA.
+
+  Every action is an atomic Prisma transaction — no race conditions.
+
+  One-click actions:
+  → Call Next Token    — triggers audio chime + TV board announcement
+  → Start Serving      — marks token as actively being served
+  → Complete Service   — finalises service, shifts all positions
+  → Mark No-Show       — logs missed call after grace period
+  → Recall Token       — re-announces same token
+  → Transfer Queue     — re-routes patient to another department
+  → Break / Pause      — pauses counter, logged to audit trail
+
+  Emergency Action Centre:
+  → Live notifications when patients request priority escalation
+  → Staff sees the reason and approves or rejects
+  → If approved, Prisma atomically bumps token to top of queue
+
+  DoctorClinicalCopilot panel (visible during SERVING):
+  → Cited ESI v4 protocol for the patient's complaint
+  → Differential diagnoses to rule out (red flags)
+  → Pre-checked diagnostic order checklist
+  → One-click "Send to Blood Lab" and "Send to Imaging" buttons
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ PANEL 5 — Airport-Grade TV Signage  ( /display )                         │
+  └──────────────────────────────────────────────────────────────────────────┘
+  Designed for wall-mounted 4K and 1080p displays. Ultra-high-contrast
+  dark layout, zero visual clutter, readable from 5+ metres away.
+
+  Split layout:
+  → LEFT  — Now Serving (large token number, counter, department)
+  → RIGHT — Upcoming Queue list (next 5–8 tokens)
+
+  A Supabase WebSocket listener fires on every TOKEN_CALLED event.
+  Web Speech API synthesizes:  "Token A-104, please proceed to Counter 2."
+  Live institutional clock and operational status bar at the bottom.
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ PANEL 6 — Admin AI Command Center  ( /admin )                            │
+  └──────────────────────────────────────────────────────────────────────────┘
+  Executive analytics dashboard with AI-powered clinical intelligence.
+
+  Live KPIs:
+  → Active patients, completed today, average wait time, no-show rate
+  → Stage dwell times: Triage → Doctor → Diagnostics → Pharmacy
+  → Starvation alerts — patients waiting longer than 45 minutes
+  → Deteriorating patient flags
+
+  Gemini AI Report (on-demand):
+  → Feeds live telemetry into Gemini 1.5 Flash
+  → AI acts as "Lead Clinical Operations Director"
+  → Returns: Risk Level (LOW / MODERATE / CRITICAL)
+  →          Bottleneck summary
+  →          Starvation directives
+  →          Operational action items
+  → Deterministic rule-based fallback if Gemini API is unavailable
+
+  Also includes:
+  → Full queue & department management (pause, resume, create, configure)
+  → Live immutable TokenEvent audit stream (every state transition logged)
+
+================================================================================
+  6. AI ENGINE IN DETAIL
+================================================================================
+
+  ── RAG ENGINE  ( lib/ai/rag.ts )  ──────────────────────────────────────────
+
+  The Clinical RAG (Retrieval-Augmented Generation) engine is the core of
+  patient triage. It is grounded in verified ESI v4 protocols — it cannot
+  fabricate diagnoses. Every output cites a real protocol ID.
+
+  TRIAGE CASCADE (in priority order):
+
+  Level 1 — RESUSCITATION
+    Trigger: SpO2 < 88%, "unresponsive", "cardiac arrest", "बेहोश"
+    Action : Immediate transfer to Emergency Room. Zero wait tolerance.
+    Tests  : Stat ABG, Troponin, Portable Chest X-Ray
+
+  Level 2 — EMERGENT (Cardiac)
+    Trigger: "chest pain", "heart attack", HR > 130, SBP ≥ 190, hypoxia
+    Action : Emergency Room. ECG within 10 minutes.
+    Tests  : 12-Lead ECG, Serum Troponin-I, Chest X-Ray
+
+  Level 2 — EMERGENT (Stroke)
+    Trigger: "facial droop", "slurred speech", "paralysis", "लकवा"
+    Action : Code Stroke activation. Non-contrast CT Brain.
+    Tests  : CT Brain, Blood Glucose, Coagulation Profile
+
+  Level 3 / 4 — URGENT
+    Trigger: Best-match from ESI v4 knowledge base (score > 0.08)
+    Action : Routes to matched department with protocol-based guidance
+
+  Level 5 — NON-URGENT
+    Trigger: No match / stable presentation
+    Action : General OPD queue
+
+  ── VECTOR STORE  ( lib/ai/vectorStore.ts )  ─────────────────────────────────
+
+  A custom offline TF-IDF similarity engine. No cloud embeddings. No cost.
+  Works without internet connection.
+
+  Searches three knowledge bases:
+  → esi_v4_protocols.json     Emergency Severity Index v4 full protocol set
+  → department_sops.json      Hospital department Standard Operating Procedures
+  → patient_faqs.json         Bilingual FAQ pairs (Hindi + English)
+
+  Algorithm:
+  → Tokenises query and document text (English + Hindi normalisation)
+  → Computes cosine-like similarity with term frequency weighting
+  → Boosts exact keyword matches (3x weight)
+  → Applies stem/prefix matching for partial word overlap
+  → Length-normalises scores to prevent long-document bias
+
+  ── GEMINI 1.5 FLASH  ( lib/ai/gemini.ts )  ──────────────────────────────────
+
+  Receives live clinical metrics:
+  → Total patients waiting
+  → Stage dwell times (Triage, Doctor, Lab, Imaging, Pharmacy)
+  → Starvation alert count (waiting > 45 min)
+  → Deteriorating patient count
+  → Critical case count (ESI Level 1 and 2)
+  → Active and paused station counts
+
+  Returns structured JSON: risk level, bottleneck summary, directives, actions.
+  Falls back to a deterministic rule-based watchdog if the API fails.
+
+  ── COHERE NLP  ( lib/ai/cohere.ts )  ────────────────────────────────────────
+
+  Parses the visitor's natural language complaint. Calculates similarity
+  scores against active department profiles. Routes to the exact department
+  queue code (A, B, C...) without requiring the patient to know department
+  names or medical terminology.
+
+================================================================================
+  7. DATABASE SCHEMA
+================================================================================
+
+  Models:    Queue → Token → TokenEvent (audit ledger)
+             Queue → Counter
+             Token → EmergencyRequest (optional)
+             Counter → Token (serving relationship)
+
+  Enums:
+
+  TriageLevel:
+    LEVEL_1_RESUSCITATION    Immediate life-threat; zero wait tolerance
+    LEVEL_2_EMERGENT         High risk, severe pain, acute altered state
+    LEVEL_3_URGENT           Clinically stable, requires 2+ care resources
+    LEVEL_4_LESS_URGENT      Stable, requires 1 resource
+    LEVEL_5_NON_URGENT       Routine consult, medication refill
+
+  CareStage:
+    TRIAGE_INTAKE → DOCTOR_CONSULTATION → DIAGNOSTICS_LAB →
+    DIAGNOSTICS_IMAGING → PHARMACY_DISPENSING → COMPLETED
+
+  DepartmentType:
+    TRIAGE_DESK, EMERGENCY_ROOM, GENERAL_OPD, CARDIOLOGY,
+    ORTHOPEDICS, PATHOLOGY_LAB, RADIOLOGY_SCAN, CENTRAL_PHARMACY
+
+  Token model key fields:
+    displayNumber     — formatted number e.g. "A-104"
+    triageLevel       — ESI Level assigned by RAG engine
+    chiefComplaint    — patient's spoken/typed complaint
+    vitalSigns        — JSON blob containing full ragClinical guidance
+    riskFlags         — array of red flag warnings
+    currentStage      — where in the care journey the patient is
+    targetDepartment  — department assigned by triage
+    isDeteriorating   — true if vitals flag acute deterioration
+    starvationAlert   — true if waiting > 45 minutes
+
+  Composite indexes:
+    [queueId, status, position]        — constant-time queue queries
+    [queueId, status, triageLevel]     — triage priority sorting
+    [isDeteriorating, starvationAlert] — watchdog monitoring queries
+
+================================================================================
+  8. TOKEN STATE MACHINE
+================================================================================
+
+  CREATED
+    └─► WAITING (Standard Priority)
+           ├─► EMERGENCY PENDING ──► APPROVED  ──► Priority Elevated
+           │                    └──► REJECTED  ──► Back to Standard
+           ├─► CALLED   ←── Staff clicks "Call Next" (chime + TTS)
+           │     ├─► SERVING ──► COMPLETED
+           │     │          └──► TRANSFERRED ──► WAITING (new dept)
+           │     ├─► NO_SHOW   (grace period expired)
+           │     └─► RECALLED  (re-announced)
+           └─► CANCELLED (visitor leaves queue)
+
+  Every transition writes an immutable TokenEvent record with:
+  → Event type, actor, timestamp, and JSON metadata payload
+
+================================================================================
+  9. SECURITY ARCHITECTURE
+================================================================================
+
+  Cloudflare Turnstile CAPTCHA
+    Prevents bot-driven queue flooding and denial-of-service at the edge.
+    Validates every /join and token creation request.
+
+  DOMPurify (isomorphic)
+    All visitor text inputs are sanitized before reaching the database.
+    No XSS payload can persist into storage.
+
+  Zod Schema Validation
+    Every API route body is runtime-validated.
+    Malformed requests are rejected before reaching business logic.
+
+  Prisma Atomic Transactions
+    All token position shifts and counter transitions execute inside
+    isolated transactions. Two staff cannot simultaneously call the
+    same patient. Race conditions are eliminated at the database level.
+
+  AI Graceful Degradation
+    If Gemini or Cohere fail (rate limits, network errors), the system
+    activates deterministic fallbacks. The queue never stops working
+    due to an AI service outage.
+
+  Session Isolation
+    Visitor session IDs are stored in local state and tied to the
+    specific token. Cross-session manipulation of live passes is blocked.
+
+================================================================================
+  10. FOLDER STRUCTURE
+================================================================================
+
+  TriagePulse/
+  │
+  ├── app/
+  │   ├── page.tsx               Landing page (GSAP crowd canvas)
+  │   ├── layout.tsx             Global shell, metadata, fonts
+  │   ├── globals.css            Cybernetic dark design tokens
+  │   ├── join/                  Visitor check-in + QR scanner
+  │   ├── ticket/[id]/           Live mobile virtual pass
+  │   ├── counter/               Staff operator cockpit
+  │   ├── display/               TV signage board + TTS
+  │   ├── admin/                 AI command center + KPI dashboard
+  │   └── api/
+  │       ├── ai/                Gemini + Cohere + RAG endpoints
+  │       │   ├── route.ts       Operational report endpoint
+  │       │   ├── faq/           Patient FAQ chatbot endpoint
+  │       │   └── voice-intake/  Voice symptom processing endpoint
+  │       ├── analytics/         KPI aggregation
+  │       ├── counters/          Counter status and assignment
+  │       ├── emergency/         Triage request + approval
+  │       ├── queues/            Queue management
+  │       ├── realtime/          SSE / webhook fallback
+  │       └── tokens/            Token state transitions
+  │
+  ├── components/
+  │   ├── counter/
+  │   │   └── DoctorClinicalCopilot.tsx   RAG decision support for doctors
+  │   ├── visitor/
+  │   │   ├── PatientCareAssistant.tsx    Bilingual AI chatbot for patients
+  │   │   └── EmergencyModal.tsx          Escalation request UI
+  │   ├── voice/
+  │   │   ├── VoiceIntakeModal.tsx        Zero-typing voice registration
+  │   │   └── useVoiceAssistant.ts        SpeechRecognition + TTS hook
+  │   ├── queue/                          Queue cards and live indicators
+  │   ├── hooks/                          Audio, realtime, speech hooks
+  │   └── ui/                             Reusable component primitives
+  │
+  ├── lib/
+  │   ├── ai/
+  │   │   ├── rag.ts                      Core clinical RAG retriever
+  │   │   ├── vectorStore.ts              Custom TF-IDF similarity engine
+  │   │   ├── gemini.ts                   Gemini 1.5 Flash integration
+  │   │   ├── cohere.ts                   Cohere semantic routing
+  │   │   └── knowledge/
+  │   │       ├── esi_v4_protocols.json   ESI v4 triage protocol database
+  │   │       ├── department_sops.json    Hospital department SOPs
+  │   │       └── patient_faqs.json       Bilingual patient FAQ pairs
+  │   ├── queue/                          Atomic state machine handlers
+  │   ├── eta/                            Weighted moving average ETA engine
+  │   ├── realtime/                       Supabase channel management
+  │   ├── analytics/                      KPI calculation logic
+  │   ├── db/                             Prisma client singleton
+  │   └── security/                       Turnstile + sanitization
+  │
+  ├── prisma/
+  │   └── schema.prisma                   Full relational data model
+  │
+  ├── public/
+  │   ├── audio/                          Notification chimes and alerts
+  │   └── images/                         Assets and sprites
+  │
+  ├── TRIAGEPULSE.html                    Project showcase page
+  ├── PROJECT_OVERVIEW.txt                This file
+  └── tailwind.config.ts                  Design system configuration
+
+================================================================================
+  11. FUTURE ROADMAP
+================================================================================
+
+  [ ] Multi-Facility Geo-Fencing
+      Automatic queue check-in when visitor enters a 100m geofence
+      radius of the hospital entrance — zero manual action required.
+
+  [ ] WhatsApp & SMS Gateway
+      Zero-data SMS and WhatsApp status updates for non-smartphone
+      users and feature phone patients.
+
+  [ ] Predictive Staff Scheduling
+      Deep learning models that predict tomorrow's peak congestion
+      and automatically suggest optimal counter shift allocations.
+
+  [ ] Wearable Operator App
+      Smartwatch haptic notifications for counter operators when
+      high-priority emergency escalations are flagged.
+
+  [ ] Multi-Hospital Network
+      Unified command center across hospital chains with real-time
+      patient load balancing across facilities in a city.
+
+================================================================================
+  LICENSE & ACKNOWLEDGMENTS
+================================================================================
+
+  Open-source under the MIT License.
+
+  Built with ❤ for the MUSA CodeX 2025 Hackathon by:
+  Rehan Ansari · Patel Afifa · Poonawala Mansoor ·
+  Preetam Pandey · Nomaan Ali Shaikh
+
+  ⚡ Engineered for speed, built for real-world impact.
+     TriagePulse // Intelligent Hospital Triage & Queue Engine
+
+================================================================================

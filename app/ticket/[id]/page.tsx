@@ -279,10 +279,33 @@ export default function VisitorMobilePassPage() {
     return () => clearInterval(interval);
   }, [token?.emergencyRequest, fetchTokenState]);
 
-  // Realtime hook with instant reconciliation
+  // 2-second background sync fallback to guarantee ticket stays 100% synchronized without manual refresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchTokenState();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [fetchTokenState]);
+
+  // Realtime hook with instant zero-latency reconciliation
   const { connectionState } = useRealtimeQueue({
     tokenId,
-    onEvent: () => {
+    onEvent: (event) => {
+      if (
+        event.type === "TOKEN_CALLED" &&
+        (event.tokenId === tokenId || (event.data?.token && event.data.token.id === tokenId))
+      ) {
+        // Optimistically set to CALLED immediately so UI reacts in 0ms
+        setToken((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                status: "CALLED",
+                counter: event.data?.counter || prev.counter,
+              }
+            : prev
+        );
+      }
       fetchTokenState();
     },
     onReconcile: () => {

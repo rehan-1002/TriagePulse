@@ -13,6 +13,19 @@ interface UseRealtimeQueueOptions {
   counterId?: string;
 }
 
+// Instant event types that should bypass debouncing and trigger immediately (0ms)
+const IMMEDIATE_EVENT_TYPES = new Set([
+  "TOKEN_CALLED",
+  "TOKEN_RECALLED",
+  "TOKEN_SERVING",
+  "TOKEN_COMPLETED",
+  "EMERGENCY_PROMOTED",
+  "EMERGENCY_REQUESTED",
+  "EMERGENCY_REJECTED",
+  "TOKEN_CANCELLED",
+  "TOKEN_CREATED",
+]);
+
 export function useRealtimeQueue(options: UseRealtimeQueueOptions = {}) {
   const { onEvent, onReconcile, channel, tokenId, counterId } = options;
   const [connectionState, setConnectionState] = useState<ConnectionState>("CONNECTED");
@@ -28,6 +41,26 @@ export function useRealtimeQueue(options: UseRealtimeQueueOptions = {}) {
     onEventRef.current = onEvent;
     onReconcileRef.current = onReconcile;
   }, [onEvent, onReconcile]);
+
+  // Zero-latency cross-tab synchronization via native BroadcastChannel
+  useEffect(() => {
+    if (typeof window === "undefined" || !("BroadcastChannel" in window)) return;
+    try {
+      const bc = new BroadcastChannel("triagepulse_realtime_bus");
+      bc.onmessage = (msgEvent) => {
+        if (!msgEvent.data) return;
+        const payload: QueueEventPayload = msgEvent.data;
+        setLastEvent(payload);
+        // Instant invocation for local tab interactions (0ms latency)
+        onEventRef.current?.(payload);
+      };
+      return () => {
+        bc.close();
+      };
+    } catch {
+      // Fallback to SSE
+    }
+  }, []);
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -52,13 +85,8 @@ export function useRealtimeQueue(options: UseRealtimeQueueOptions = {}) {
         setConnectionState("CONNECTED");
         if (isReconnectingRef.current) {
           isReconnectingRef.current = false;
-          // Trigger debounced reconciliation
-          if (onReconcileRef.current) {
-            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-            debounceTimerRef.current = setTimeout(() => {
-              onReconcileRef.current?.();
-            }, 100);
-          }
+          // Trigger reconciliation
+          onReconcileRef.current?.();
         }
       };
 
@@ -72,12 +100,14 @@ export function useRealtimeQueue(options: UseRealtimeQueueOptions = {}) {
           }
           setLastEvent(payload);
 
-          // Debounce event callback to prevent render thrashing
-          if (onEventRef.current) {
+          // If it's an immediate operational action, fire instantly without debounce
+          if (IMMEDIATE_EVENT_TYPES.has(payload.type)) {
+            onEventRef.current?.(payload);
+          } else if (onEventRef.current) {
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             debounceTimerRef.current = setTimeout(() => {
               onEventRef.current?.(payload);
-            }, 80);
+            }, 30);
           }
         } catch {
           // heartbeat ignore
@@ -97,7 +127,7 @@ export function useRealtimeQueue(options: UseRealtimeQueueOptions = {}) {
           reconnectTimeout = setTimeout(() => {
             reconnectTimeout = null;
             establishConnection();
-          }, 3000);
+          }, 2000);
         }
       };
     };

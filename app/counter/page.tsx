@@ -29,6 +29,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { DoctorClinicalCopilot } from "@/components/counter/DoctorClinicalCopilot";
+import { broadcastLocalQueueEvent } from "@/lib/realtime/clientBroadcast";
 
 interface CounterDetail {
   id: string;
@@ -332,13 +333,57 @@ export default function CounterConsolePage() {
           showNotification("No waiting patients in this queue.", "info");
         } else {
           showNotification(`Called Token ${data.token?.displayNumber} to ${currentCounter.name}`, "success");
+          if (data.token) {
+            broadcastLocalQueueEvent({
+              type: "TOKEN_CALLED",
+              tokenId: data.token.id,
+              queueId: data.token.queueId,
+              counterId: currentCounter.id,
+              data: {
+                token: data.token,
+                counter: {
+                  id: currentCounter.id,
+                  number: currentCounter.number,
+                  name: currentCounter.name,
+                },
+                announcement: `Token ${data.token.displayNumber}, please proceed to ${currentCounter.name}.`,
+              },
+            });
+          }
         }
       } else if (action === "COMPLETE" || action === "COMPLETE_SERVING") {
         showNotification(`Completed service for Token ${currentToken?.displayNumber || ""}`, "success");
+        broadcastLocalQueueEvent({
+          type: "TOKEN_COMPLETED",
+          tokenId: currentToken?.id,
+          counterId: currentCounter.id,
+        });
       } else if (action === "RECALL") {
         showNotification(`Recalled Token ${currentToken?.displayNumber}`, "info");
+        if (currentToken) {
+          broadcastLocalQueueEvent({
+            type: "TOKEN_RECALLED",
+            tokenId: currentToken.id,
+            queueId: currentToken.queueId,
+            counterId: currentCounter.id,
+            data: {
+              token: currentToken,
+              counter: {
+                id: currentCounter.id,
+                number: currentCounter.number,
+                name: currentCounter.name,
+              },
+              announcement: `Recall: Token ${currentToken.displayNumber}, please proceed to ${currentCounter.name}.`,
+            },
+          });
+        }
       } else if (action === "NO_SHOW") {
         showNotification(`Marked Token ${currentToken?.displayNumber} as No-Show`, "error");
+        broadcastLocalQueueEvent({
+          type: "TOKEN_NO_SHOW",
+          tokenId: currentToken?.id,
+          counterId: currentCounter.id,
+        });
       } else if (action === "PAUSE") {
         showNotification(`${currentCounter.name} is now Paused`, "info");
       } else if (action === "RESUME") {
@@ -346,6 +391,10 @@ export default function CounterConsolePage() {
       } else if (action === "TRANSFER") {
         showNotification(`Transferred Token to target queue`, "success");
         setIsTransferModalOpen(false);
+        broadcastLocalQueueEvent({
+          type: "TOKEN_TRANSFERRED",
+          counterId: currentCounter.id,
+        });
       } else if (action === "ASSIGN_QUEUE") {
         showNotification(`Assigned ${currentCounter.name} to ${data.counter?.queue?.name || "General (All Queues)"}`, "success");
         setIsAssignQueueModalOpen(false);

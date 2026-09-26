@@ -210,11 +210,11 @@ export default function PublicDisplayPage() {
     },
   });
 
-  // 3-second auto-polling fallback
+  // 2-second auto-polling fallback to guarantee display never falls out of sync
   useEffect(() => {
     const interval = setInterval(() => {
       fetchDisplayState();
-    }, 3000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [fetchDisplayState]);
 
