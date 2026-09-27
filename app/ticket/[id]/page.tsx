@@ -18,6 +18,7 @@ import {
   VolumeX,
   Bell,
   Zap,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
@@ -25,6 +26,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { QRCodeDisplay } from "@/components/ui/QRCodeDisplay";
 import { EmergencyModal } from "@/components/visitor/EmergencyModal";
+import { SmsPassModal } from "@/components/visitor/SmsPassModal";
 import { LiveQueueHero } from "@/components/queue/QueuePositionCounter";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { PatientCareAssistant } from "@/components/visitor/PatientCareAssistant";
@@ -92,6 +94,7 @@ export default function VisitorMobilePassPage() {
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [ticketUrl, setTicketUrl] = useState<string>("");
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
+  const [showSmsModal, setShowSmsModal] = useState<boolean>(false);
   const [failSafeCountdown, setFailSafeCountdown] = useState<number>(60);
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
   const [currentLang, setCurrentLang] = useState<LanguageCode>("hi");
@@ -452,6 +455,13 @@ export default function VisitorMobilePassPage() {
             currentLanguage={currentLang}
             onLanguageChange={handleLanguageChange}
           />
+          <button
+            onClick={() => setShowSmsModal(true)}
+            className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-emerald-400 transition"
+            title="Send Pass via Real SMS"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </button>
           <button
             onClick={() => setShowQrModal(true)}
             className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
@@ -911,6 +921,16 @@ export default function VisitorMobilePassPage() {
       {/* Action Controls for Active Waiting Tokens */}
       {token.status === "WAITING" && (
         <div className="space-y-3 pt-2">
+          {/* Real SMS Dispatch for Basic Keypad Phone */}
+          <button
+            type="button"
+            onClick={() => setShowSmsModal(true)}
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl border border-emerald-800/80 bg-emerald-950/40 hover:bg-emerald-900/60 active:scale-[0.98] text-emerald-300 font-mono font-bold text-xs sm:text-sm shadow-md transition-all"
+          >
+            <MessageSquare className="w-4 h-4 text-emerald-400" />
+            <span>📱 Send Live Pass via SMS (Keypad Phone)</span>
+          </button>
+
           {!token.isDeteriorating && !token.emergencyRequest && (
             <button
               type="button"
@@ -942,6 +962,16 @@ export default function VisitorMobilePassPage() {
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
         onSubmitted={fetchTokenState}
+      />
+
+      {/* Real SMS Pass Dispatch Modal */}
+      <SmsPassModal
+        isOpen={showSmsModal}
+        onClose={() => setShowSmsModal(false)}
+        displayNumber={token.displayNumber}
+        position={peopleAhead + 1}
+        estimatedWaitMins={estimatedWaitMins}
+        queueName={token.queue?.name || "General OPD"}
       />
 
       {/* Share / Save QR Modal */}
