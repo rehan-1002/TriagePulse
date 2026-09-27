@@ -3,6 +3,7 @@
   "short_name": "TriagePulse",
   "description": "AI-driven smart hospital triage, live OPD queue tracking, and zero-delay emergency care.",
   "start_url": "/",
+  "id": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

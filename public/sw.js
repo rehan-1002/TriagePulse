@@ -11,13 +11,17 @@ const STATIC_ASSETS = [
   '/icons/favicon-32x32.png',
 ];
 
-// Install: Cache critical core shells
+// Install: Cache critical core shells safely
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('SW pre-cache non-fatal error:', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of STATIC_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (e) {
+          // ignore individual asset load failure
+        }
+      }
     })
   );
   self.skipWaiting();

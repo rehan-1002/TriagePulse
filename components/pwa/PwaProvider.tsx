@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Download, WifiOff, CheckCircle2, X } from "lucide-react";
+import { Download, WifiOff, CheckCircle2, X, Smartphone, Share2, PlusSquare, MonitorCheck } from "lucide-react";
 
 interface PwaContextType {
   isInstallable: boolean;
@@ -23,20 +23,29 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
   const [isOffline, setIsOffline] = useState(false);
   const [showOfflineNotice, setShowOfflineNotice] = useState(false);
   const [dismissedBanner, setDismissedBanner] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   useEffect(() => {
-    // 1. Service Worker Registration
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
+    // 1. Service Worker Registration (immediate if ready, or on load)
+    const registerServiceWorker = () => {
+      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
         navigator.serviceWorker
-          .register("/sw.js")
+          .register("/sw.js", { scope: "/" })
           .then((registration) => {
             console.log("PWA Service Worker registered with scope:", registration.scope);
           })
           .catch((error) => {
             console.warn("PWA Service Worker registration non-fatal:", error);
           });
-      });
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      if (document.readyState === "complete" || document.readyState === "interactive") {
+        registerServiceWorker();
+      } else {
+        window.addEventListener("load", registerServiceWorker);
+      }
     }
 
     // 2. Listen for Install Prompt
@@ -76,7 +85,7 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      alert("To install TriagePulse on your device:\n\n• On Android/Chrome: Tap Chrome menu (⋮) -> 'Add to Home screen' or 'Install app'.\n• On iPhone/Safari: Tap Share button (⎙) -> 'Add to Home Screen'.");
+      setShowInstallGuide(true);
       return;
     }
     deferredPrompt.prompt();
@@ -183,6 +192,84 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </aside>
+      )}
+
+      {/* Install Guidance Modal (for Safari iOS, Chrome desktop, or when direct prompt is not supported) */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-950 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl space-y-4 text-white">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-600/50 flex items-center justify-center text-emerald-400">
+                  <Download className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold font-mono">Install TriagePulse App</h3>
+                  <p className="text-[11px] text-zinc-400 font-mono">Hospital Triage &amp; OPD Queue System</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInstallGuide(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs font-mono">
+              {/* iOS Safari */}
+              <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-emerald-400">
+                  <Smartphone className="w-4 h-4" />
+                  <span>iPhone / iPad (Safari)</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1 text-zinc-300 text-[11px]">
+                  <li>
+                    Tap the <strong className="text-white">Share</strong> button (
+                    <Share2 className="w-3 h-3 inline text-emerald-400" />) at the bottom bar.
+                  </li>
+                  <li>Scroll down and tap <strong className="text-white">&quot;Add to Home Screen&quot;</strong>.</li>
+                  <li>Tap <strong className="text-emerald-400">Add</strong> at top right to install.</li>
+                </ol>
+              </div>
+
+              {/* Android / Chrome */}
+              <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-emerald-400">
+                  <Smartphone className="w-4 h-4" />
+                  <span>Android (Chrome / Edge / Firefox)</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1 text-zinc-300 text-[11px]">
+                  <li>Tap the browser menu (<strong className="text-white">⋮ 3 dots</strong>) in top/bottom right.</li>
+                  <li>Select <strong className="text-white">&quot;Install app&quot;</strong> or <strong className="text-white">&quot;Add to Home screen&quot;</strong>.</li>
+                  <li>Confirm installation.</li>
+                </ol>
+              </div>
+
+              {/* Desktop Chrome / Edge */}
+              <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-emerald-400">
+                  <MonitorCheck className="w-4 h-4" />
+                  <span>Laptop / PC (Chrome or Edge)</span>
+                </div>
+                <p className="text-zinc-300 text-[11px]">
+                  Look for the <strong className="text-white">Install icon</strong> in the right side of the address bar, or click browser menu (⋮) → <strong className="text-white">&quot;Install TriagePulse&quot;</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowInstallGuide(false)}
+                className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-mono text-xs font-bold text-white transition active:scale-98"
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </PwaContext.Provider>
   );
