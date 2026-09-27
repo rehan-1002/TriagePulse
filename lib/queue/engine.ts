@@ -447,7 +447,9 @@ export async function cancelToken(tokenId: string, visitorSessionId?: string) {
 }
 
 /**
- * Submit an Emergency / Priority Review Request
+/**
+ * Submit an Emergency / Priority Request - Automated Instant Escalation (No confirmation delay)
+ * Immediately escalates token to Priority #1, ESI Level 1, and notifies all stations in realtime.
  */
 export async function submitEmergencyRequest(tokenId: string, reason: string) {
   const token = await prisma.token.findUnique({
@@ -463,74 +465,96 @@ export async function submitEmergencyRequest(tokenId: string, reason: string) {
     throw new Error("Only waiting tokens can request emergency priority");
   }
 
-  if (token.emergencyRequest) {
-    throw new Error("An emergency request has already been submitted for this token");
+  // If already approved, return existing
+  if (token.emergencyRequest && token.emergencyRequest.status === "APPROVED") {
+    return token.emergencyRequest;
   }
 
-  const emergencyRequest = await prisma.emergencyRequest.create({
-    data: {
-      tokenId: token.id,
-      reason,
-      status: "PENDING",
-    },
-    include: {
-      token: {
-        include: { queue: true },
+  // Create or update emergency request directly as APPROVED (Automated Escalation)
+  let emergencyRequest;
+  if (token.emergencyRequest) {
+    emergencyRequest = await prisma.emergencyRequest.update({
+      where: { id: token.emergencyRequest.id },
+      data: {
+        reason,
+        status: "APPROVED",
+        reviewedAt: new Date(),
+        reviewedBy: "AUTOMATED_SAFETY_TRIAGE",
+        notes: "Instant automated escalation (Zero human confirmation delay)",
       },
+      include: {
+        token: { include: { queue: true } },
+      },
+    });
+  } else {
+    emergencyRequest = await prisma.emergencyRequest.create({
+      data: {
+        tokenId: token.id,
+        reason,
+        status: "APPROVED",
+        reviewedAt: new Date(),
+        reviewedBy: "AUTOMATED_SAFETY_TRIAGE",
+        notes: "Instant automated escalation (Zero human confirmation delay)",
+      },
+      include: {
+        token: { include: { queue: true } },
+      },
+    });
+  }
+
+  // Atomically elevate token to EMERGENCY priority, ESI Level 1, and deteriorating flag
+  await prisma.token.update({
+    where: { id: token.id },
+    data: {
+      priority: "EMERGENCY",
+      triageLevel: "LEVEL_1_RESUSCITATION",
+      isDeteriorating: true,
     },
   });
 
-  // Record Event
+  // Re-index queue so emergency token immediately becomes #1 and other waiting tokens shift back
+  await reindexQueuePositions(prisma, token.queueId);
+
+  // Fetch updated token with its new position #1
+  const promotedToken = await prisma.token.findUnique({
+    where: { id: token.id },
+    include: { queue: true },
+  });
+
+  // Record audit events
   await prisma.tokenEvent.create({
     data: {
       tokenId: token.id,
       queueId: token.queueId,
-      eventType: "EMERGENCY_REQUESTED",
-      actor: token.visitorName || "VISITOR",
+      eventType: "EMERGENCY_PROMOTED",
+      actor: "AUTOMATED_SAFETY_TRIAGE",
       metadata: JSON.stringify({
         displayNumber: token.displayNumber,
+        newPosition: promotedToken?.position || 1,
         reason,
-        currentPosition: token.position,
+        automated: true,
       }),
     },
   }).catch(() => {});
 
-  realtimeBus.publish("EMERGENCY_REQUESTED", {
-    tokenId: emergencyRequest.tokenId,
-    queueId: emergencyRequest.token.queueId,
+  // Publish Realtime Events so ticket, displays, and doctor cabins update instantly
+  realtimeBus.publish("EMERGENCY_PROMOTED", {
+    tokenId: promotedToken!.id,
+    queueId: promotedToken!.queueId,
     data: {
-      emergencyRequest: {
-        id: emergencyRequest.id,
-        tokenId: emergencyRequest.tokenId,
-        displayNumber: emergencyRequest.token.displayNumber,
-        reason: emergencyRequest.reason,
-        status: emergencyRequest.status,
-        currentPosition: emergencyRequest.token.position,
-        requestedAt: emergencyRequest.requestedAt.toISOString(),
-        queueName: emergencyRequest.token.queue.name,
+      token: {
+        id: promotedToken!.id,
+        displayNumber: promotedToken!.displayNumber,
+        position: promotedToken!.position,
+        priority: promotedToken!.priority,
+        triageLevel: promotedToken!.triageLevel,
+        visitorName: promotedToken!.visitorName,
+        queueName: promotedToken!.queue.name,
       },
+      reason,
+      reviewer: "AUTOMATED_SAFETY_TRIAGE",
     },
   });
-
-  // Active 60-Second Dead-Man's Switch (Fail-Safe)
-  // If triage desk is unattended for 60s, automatically fail open to #1
-  setTimeout(async () => {
-    try {
-      const check = await prisma.emergencyRequest.findUnique({
-        where: { id: emergencyRequest.id },
-      });
-      if (check && check.status === "PENDING") {
-        console.log(`[60s FAIL-SAFE TRIGGERED] Emergency request ${check.id} unattended for 60s. Auto-promoting.`);
-        await approveEmergencyRequest(
-          check.id,
-          "SYSTEM_FAILSAFE_TIMEOUT",
-          "Auto-promoted to #1: Triage desk unattended for >60s. Safety-first fail-open."
-        );
-      }
-    } catch (err) {
-      console.error("Fail-safe 60s auto-promotion error:", err);
-    }
-  }, 60000);
 
   return emergencyRequest;
 }

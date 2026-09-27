@@ -111,10 +111,10 @@ export function EmergencyModal({
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-mono uppercase font-bold text-white">
-                आपातकालीन प्राथमिकता अनुरोध
+                आपातकालीन प्राथमिकता (Automated Escalation)
               </h3>
-              <span className="text-[11px] text-red-400 font-mono">
-                Emergency Priority Verification
+              <span className="text-[11px] text-emerald-400 font-mono font-semibold">
+                Instant Position #1 • Zero Confirmation Delay
               </span>
             </div>
           </div>
@@ -127,28 +127,25 @@ export function EmergencyModal({
         </div>
 
         {/* Anti-Spoof Warning Box */}
-        <div className="mb-4 rounded-xl border border-amber-500/60 bg-amber-950/30 p-3.5 space-y-1">
+        <div className="mb-3 rounded-xl border border-amber-500/60 bg-amber-950/30 p-3 space-y-1">
           <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs">
             <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             <span>सख्त चेतावनी / Anti-Spoof Penalty Warning</span>
           </div>
           <p className="text-zinc-200 text-xs leading-relaxed">
-            यह बटन केवल <strong>गंभीर व जानलेवा स्थिति</strong> के लिए है। यदि बिना वास्तविक आपातकाल के केवल लाइन काटने के लिए यह बटन दबाया गया, तो स्टाफ द्वारा जांच के बाद आपका टोकन <strong>कतार में सबसे पीछे भेज दिया जाएगा</strong>।
-          </p>
-          <p className="text-zinc-400 text-[10px] font-mono">
-            (Warning: Falsely claiming an emergency will penalize your token, demoting it to the back of the queue).
+            यह सुविधा केवल <strong>गंभीर व जानलेवा स्थिति</strong> के लिए है। बिना आपातकाल के लाइन काटने पर डॉक्टर द्वारा जांच के बाद टोकन <strong>कतार में सबसे पीछे भेज दिया जाएगा</strong>।
           </p>
         </div>
 
-        {/* 60-Second Fail-Safe Reassurance */}
+        {/* Instant Automated Escalation Guarantee */}
         <div className="mb-4 rounded-xl border border-emerald-500/50 bg-emerald-950/20 p-3 flex items-start gap-2.5">
-          <Clock className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+          <HeartPulse className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5 animate-pulse" />
           <div className="text-xs">
             <span className="font-bold text-emerald-300 block">
-              60-सेकंड सुरक्षा गारंटी (Unattended Desk Fail-Safe)
+              ⚡ स्वचालित प्राथमिकता सक्रियण (Instant Escalation Active)
             </span>
-            <span className="text-zinc-400 text-[11px]">
-              यदि नर्स डेस्क पर कोई उपस्थित नहीं हुआ, तो 60 सेकंड बाद सिस्टम स्वतः आपको #1 पर प्रमोट कर देगा। किसी भी आपातकाल में मरीज रुकेगा नहीं।
+            <span className="text-zinc-300 text-[11px] block mt-0.5">
+              लक्षण दर्ज करते ही आपका टोकन बिना किसी मानवीय देरी या स्टाफ की पुष्टि के सीधे #1 पर पहुंच जाएगा।
             </span>
           </div>
         </div>
@@ -230,8 +227,8 @@ export function EmergencyModal({
               className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 active:scale-95 text-white font-mono font-bold text-xs shadow-lg shadow-red-950/50 transition-all disabled:opacity-50"
             >
               {isSubmitting
-                ? "अनुरोध भेजा जा रहा है..."
-                : "🚨 आपातकाल सत्यापित करें (Request Priority)"}
+                ? "प्राथमिकता सक्रिय हो रही है..."
+                : "🚨 तत्काल #1 प्राथमिकता सक्रिय करें (Instant Priority #1)"}
             </button>
           </div>
         </form>

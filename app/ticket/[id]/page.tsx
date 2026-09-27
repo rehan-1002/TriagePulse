@@ -743,14 +743,14 @@ export default function VisitorMobilePassPage() {
       )}
 
       {hasApprovedEmergency && (
-        <div className="rounded-xl border-2 border-red-600 bg-red-950/40 p-4 flex items-start gap-3 shadow-lg shadow-red-950/40">
+        <div className="rounded-xl border-2 border-red-600 bg-red-950/40 p-4 flex items-start gap-3 shadow-lg shadow-red-950/40 animate-pulse">
           <ShieldAlert className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5 animate-bounce" />
           <div className="text-xs">
             <span className="font-mono uppercase font-bold text-red-300 block text-sm">
-              आपातकाल स्वीकृत (Priority #1 Approved)
+              🚨 स्वचालित आपातकाल सक्रिय (Priority #1 Escalated - Zero Delay)
             </span>
             <span className="text-zinc-200 text-xs block mt-1">
-              आपकी आपातकालीन स्थिति सत्यापित हो चुकी है। आप कतार में <strong>सर्वोच्च #1 स्थान</strong> पर हैं। कृपया सीधे आपातकालीन डॉक्टर के पास पहुंचें।
+              गंभीर स्थिति के कारण आपका टोकन बिना किसी मानवीय देरी के <strong>स्वतः सर्वोच्च #1 स्थान</strong> पर पहुंचा दिया गया है। कृपया तुरंत डॉक्टर केबिन या आपातकालीन डेस्क में जाएं।
             </span>
           </div>
         </div>

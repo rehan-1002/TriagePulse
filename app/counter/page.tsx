@@ -179,8 +179,12 @@ export default function CounterConsolePage() {
       if (emergencyRes.status === "fulfilled" && emergencyRes.value.ok) {
         const emergencyData = await emergencyRes.value.json();
         if (emergencyData.success && Array.isArray(emergencyData.requests)) {
-          const pending = emergencyData.requests.filter((r: any) => r.status === "PENDING");
-          setPendingEmergencies(pending);
+          const active = emergencyData.requests.filter(
+            (r: any) =>
+              (r.status === "APPROVED" || r.status === "PENDING") &&
+              r.token?.status === "WAITING"
+          );
+          setPendingEmergencies(active);
         }
       }
     } catch (err) {
@@ -535,7 +539,7 @@ export default function CounterConsolePage() {
         </div>
       )}
 
-      {/* Multi-Station Urgent Priority Alert Banner (Doctor / Nurse Red Phone) */}
+      {/* Multi-Station Urgent Priority Alert Banner (Doctor / Nurse Workstation) */}
       {pendingEmergencies.length > 0 && (
         <div className="rounded-xl border-2 border-red-600 bg-red-950/90 p-4 text-white shadow-2xl shadow-red-950/70 animate-pulse space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-800/80 pb-3">
@@ -546,19 +550,19 @@ export default function CounterConsolePage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-bold uppercase tracking-wider bg-red-600 px-2 py-0.5 rounded text-white">
-                    🚨 तत्काल आपातकालीन समीक्षा (Emergency Gatekeeper)
+                    🚨 तत्काल आपातकाल अलर्ट (Automated Priority #1 Active)
                   </span>
                   <span className="text-xs text-red-200 font-mono">
-                    {pendingEmergencies.length} लंबित अनुरोध
+                    {pendingEmergencies.length} सक्रिय आपातकालीन मरीज
                   </span>
                 </div>
                 <h3 className="text-sm font-bold text-white mt-0.5">
-                  यदि नर्स डेस्क अनुपस्थित है, तो डॉक्टर केबिन से तुरंत निर्णय लें (60s Fail-Safe Active)
+                  मरीज को गंभीर लक्षणों के कारण स्वतः प्राथमिकता #1 पर प्रमोट कर दिया गया है (Zero Confirmation Delay)
                 </h3>
               </div>
             </div>
-            <div className="text-[11px] font-mono text-red-300">
-              सुरक्षा सिद्धांत: 60 सेकंड में बिना सत्यापन के यह स्वतः #1 हो जाएगा
+            <div className="text-[11px] font-mono text-emerald-300 font-semibold bg-emerald-950/80 border border-emerald-700/60 px-2.5 py-1 rounded">
+              ⚡ स्वतः स्वीकृत (Instant Auto-Escalation)
             </div>
           </div>
 
@@ -576,31 +580,33 @@ export default function CounterConsolePage() {
                     <span className="text-xs font-bold text-white">
                       {req.token.visitorName}
                     </span>
-                    <span className="text-[11px] font-mono text-zinc-400">
-                      (वर्तमान स्थान: #{req.token.position})
+                    <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                      (कतार में स्थान: #{req.token.position || 1} • ESI Level 1)
                     </span>
                   </div>
                   <p className="text-xs text-red-200 mt-1 font-mono">
-                    शिकायत / लक्षण: {req.reason}
+                    लक्षण / कारण: {req.reason}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     type="button"
-                    disabled={actionLoading === `emergency_${req.id}`}
-                    onClick={() => handleReviewEmergency(req.id, "APPROVE")}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono font-bold text-xs shadow-md transition-all disabled:opacity-50"
+                    disabled={actionLoading === `call_${req.token.id}`}
+                    onClick={() => handleCounterAction("CALL_NEXT", { specificTokenId: req.token.id })}
+                    className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono font-bold text-xs shadow-md transition-all disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    ✅ आपातकाल स्वीकारें (#1)
+                    <PhoneCall className="w-3.5 h-3.5" />
+                    <span>📞 तुरंत बुलाएं (Call Now)</span>
                   </button>
                   <button
                     type="button"
                     disabled={actionLoading === `emergency_${req.id}`}
                     onClick={() => handleReviewEmergency(req.id, "REJECT")}
-                    className="px-3 py-1.5 rounded-lg bg-red-800 hover:bg-red-700 active:scale-95 text-white font-mono font-bold text-xs shadow-md transition-all disabled:opacity-50"
+                    className="px-2.5 py-2 rounded-lg bg-zinc-800 hover:bg-red-900/60 active:scale-95 text-zinc-300 hover:text-white font-mono text-xs border border-zinc-700 transition-all disabled:opacity-50"
+                    title="यदि मरीज ने झूठा आपातकाल दर्ज किया हो तो सामान्य कतार में भेजें"
                   >
-                    ❌ अस्वीकार व दंड (Spoof)
+                    झूठा अलार्म (Demote)
                   </button>
                 </div>
               </div>
