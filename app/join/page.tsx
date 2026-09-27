@@ -757,27 +757,6 @@ export default function CheckInPage() {
                 />
               </div>
 
-              {/* Optional Mobile Number for SMS */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs text-zinc-400">
-                    {t.phoneNumberLabel}
-                  </label>
-                  <span className="text-[10px] font-mono text-emerald-400 font-semibold">SMS ALERTS</span>
-                </div>
-                <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 focus-within:border-emerald-500 transition">
-                  <span className="text-xs font-mono text-zinc-500 mr-2 select-none">+91</span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    placeholder={t.phoneNumberPlaceholder}
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
-                    className="w-full bg-transparent text-sm font-mono text-white placeholder-zinc-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
               {/* GIANT CALL TO ACTION BUTTON */}
               <div className="pt-2">
                 <button
@@ -970,18 +949,40 @@ export default function CheckInPage() {
                   </div>
                 </div>
 
-                {/* Patient Name */}
-                <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1">
-                    Patient Full Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Eleanor Vance"
-                    value={visitorName}
-                    onChange={(e) => setVisitorName(e.target.value)}
-                    className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
-                  />
+                {/* Patient Name & Mobile Number (for SMS Pass Alert) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1">
+                      Patient Full Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Ramesh Kumar"
+                      value={visitorName}
+                      onChange={(e) => setVisitorName(e.target.value)}
+                      className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">
+                        Patient / Attendant Phone (SMS Pass)
+                      </label>
+                      <span className="text-[10px] font-mono text-emerald-400 font-semibold">SMS Alert</span>
+                    </div>
+                    <div className="flex items-center rounded border border-zinc-800 bg-zinc-900 px-3 py-2 focus-within:border-emerald-500 transition">
+                      <span className="text-xs font-mono text-zinc-500 mr-2 select-none">+91</span>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        placeholder="10-digit mobile number"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
+                        className="w-full bg-transparent text-sm font-mono text-white placeholder-zinc-600 focus:outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Chief Medical Complaint */}
