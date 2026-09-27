@@ -35,7 +35,6 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { QRCodeDisplay } from "@/components/ui/QRCodeDisplay";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
-import { VoiceIntakeModal } from "@/components/voice/VoiceIntakeModal";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 import {
   LanguageCode,
@@ -240,7 +239,6 @@ export default function CheckInPage() {
   const [voiceLang, setVoiceLang] = useState<"hi-IN" | "en-IN">("hi-IN");
   const [speechFeedback, setSpeechFeedback] = useState<string>("");
   const recognitionRef = useRef<any>(null);
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState<boolean>(false);
 
   // AI Triage state (for detailed mode)
   const [aiPrompt, setAiPrompt] = useState<string>("");
@@ -565,44 +563,6 @@ export default function CheckInPage() {
         </div>
       </div>
 
-      {/* =========================================================================
-          VOICE-FIRST PATIENT INTAKE (ONE-TAP ZERO TYPING)
-          ========================================================================= */}
-      <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-950/80 via-zinc-950 to-teal-950/80 p-4 sm:p-5 shadow-xl shadow-emerald-950/40">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-zinc-950 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-500/30">
-              <Mic className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
-                  {t.voiceIntakeBadge}
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  AI ASSISTANT
-                </span>
-              </div>
-              <h2 className="text-base sm:text-lg font-bold text-white mt-1">
-                {t.voiceIntakeHeader}
-              </h2>
-              <p className="text-xs text-zinc-300 mt-0.5">
-                {t.voiceIntakeSub}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsVoiceModalOpen(true)}
-            className="flex-shrink-0 py-3 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-bold text-sm tracking-wide transition shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Mic className="w-4 h-4" />
-            <span>{t.voiceIntakeBtn}</span>
-          </button>
-        </div>
-      </div>
-
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-red-800/80 bg-red-950/40 p-3 text-xs text-red-300">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -620,12 +580,12 @@ export default function CheckInPage() {
             {/* STEP 1: VOICE INPUT (VERNACULAR "बोलकर बताएं") */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                    {t.step1Badge}: {t.step1Header}
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-bold uppercase">
+                    {t.step1Badge}
                   </span>
-                  <h3 className="text-base font-bold text-white mt-0.5">
-                    {t.step1Sub}
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    {t.step1Header}
                   </h3>
                 </div>
 
@@ -658,9 +618,6 @@ export default function CheckInPage() {
                   <span className="text-sm font-bold text-zinc-100 block">
                     {isListening ? t.listening : t.tapToSpeak}
                   </span>
-                  <span className="text-xs text-zinc-400 block mt-0.5">
-                    {t.step1Sub}
-                  </span>
                 </div>
 
                 {speechFeedback && (
@@ -673,11 +630,11 @@ export default function CheckInPage() {
 
             {/* STEP 2: PICTORIAL SYMPTOM GRID (NO READING REQUIRED) */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
-              <div>
-                <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-bold uppercase">
                   {t.step2Badge}
                 </span>
-                <h3 className="text-base font-bold text-white mt-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-white">
                   {t.step2Header}
                 </h3>
               </div>
@@ -757,11 +714,11 @@ export default function CheckInPage() {
 
             {/* STEP 3: PATIENT QUICK IDENTITY & SUBMIT */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
-              <div>
-                <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-bold uppercase">
                   {t.step3Badge}
                 </span>
-                <h3 className="text-base font-bold text-white mt-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-white">
                   {t.step3Header}
                 </h3>
               </div>
@@ -787,7 +744,7 @@ export default function CheckInPage() {
               {/* Optional Name */}
               <div>
                 <label className="block text-xs text-zinc-400 mb-1">
-                  {t.step3Header}
+                  {t.patientNamePlaceholder}
                 </label>
                 <input
                   type="text"
@@ -1131,12 +1088,6 @@ export default function CheckInPage() {
           </div>
         </div>
       )}
-
-      {/* Voice-First Intake Modal */}
-      <VoiceIntakeModal
-        isOpen={isVoiceModalOpen}
-        onClose={() => setIsVoiceModalOpen(false)}
-      />
     </div>
   );
 }
