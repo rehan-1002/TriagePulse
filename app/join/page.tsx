@@ -37,6 +37,13 @@ import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { QRCodeDisplay } from "@/components/ui/QRCodeDisplay";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { VoiceIntakeModal } from "@/components/voice/VoiceIntakeModal";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import {
+  LanguageCode,
+  SUPPORTED_LANGUAGES,
+  JOIN_TRANSLATIONS,
+  PICTORIAL_CARD_TRANSLATIONS,
+} from "@/lib/i18n/languages";
 
 interface QueueItem {
   id: string;
@@ -190,13 +197,29 @@ export default function CheckInPage() {
   // Mode: Default is "EASY" (No login, zero barriers for low-literacy patients)
   const [intakeMode, setIntakeMode] = useState<"EASY" | "CLINICAL">("EASY");
 
+  // Language State: Default is pure Hindi "hi" (Zero Hinglish clutter)
+  const [currentLang, setCurrentLang] = useState<LanguageCode>("hi");
+  const t = JOIN_TRANSLATIONS[currentLang] || JOIN_TRANSLATIONS.hi;
+  const currentLangOption =
+    SUPPORTED_LANGUAGES.find((opt) => opt.code === currentLang) || SUPPORTED_LANGUAGES[0];
+
   const [queues, setQueues] = useState<QueueItem[]>([]);
   const [selectedQueueId, setSelectedQueueId] = useState<string>("");
   const [selectedPictorialId, setSelectedPictorialId] = useState<string>("");
   const [visitorName, setVisitorName] = useState<string>("");
-  const [patientRelationship, setPatientRelationship] = useState<string>("स्वयं (Self)");
+  const [patientRelationship, setPatientRelationship] = useState<string>(t.relSelf);
   const [purpose, setPurpose] = useState<string>("");
   const [chiefComplaint, setChiefComplaint] = useState<string>("");
+
+  const handleLanguageChange = (lang: LanguageCode) => {
+    setCurrentLang(lang);
+    const opt = SUPPORTED_LANGUAGES.find((o) => o.code === lang);
+    if (opt) {
+      setVoiceLang(opt.speechLocale as any);
+    }
+    const newT = JOIN_TRANSLATIONS[lang] || JOIN_TRANSLATIONS.hi;
+    setPatientRelationship(newT.relSelf);
+  };
 
   // Clinical Mode specifics
   const [showVitals, setShowVitals] = useState<boolean>(false);
@@ -295,12 +318,16 @@ export default function CheckInPage() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
+        const cardTrans = PICTORIAL_CARD_TRANSLATIONS[currentLang]?.[card.id] || {
+          title: card.hindiTitle,
+          sub: card.hindiSub,
+        };
         const utterance = new SpeechSynthesisUtterance(
           card.severity === "EMERGENCY"
-            ? `${card.hindiTitle} चुना गया। यह आपातकालीन श्रेणी है।`
-            : `${card.hindiTitle} चुना गया।`
+            ? `${cardTrans.title}. ${t.severityEmergency}.`
+            : cardTrans.title
         );
-        utterance.lang = "hi-IN";
+        utterance.lang = currentLangOption.speechLocale;
         utterance.rate = 1.0;
         window.speechSynthesis.speak(utterance);
       } catch (e) {
@@ -336,11 +363,7 @@ export default function CheckInPage() {
 
       recognition.onstart = () => {
         setIsListening(true);
-        setSpeechFeedback(
-          voiceLang === "hi-IN"
-            ? "सुन रहे हैं... कृपया अपनी परेशानी बताएं..."
-            : "Listening... Please describe your problem..."
-        );
+        setSpeechFeedback(t.listening);
       };
 
       recognition.onresult = (event: any) => {
@@ -372,11 +395,7 @@ export default function CheckInPage() {
       recognition.onerror = (event: any) => {
         console.warn("Speech recognition error:", event.error);
         setIsListening(false);
-        setSpeechFeedback(
-          voiceLang === "hi-IN"
-            ? "आवाज़ सुनाई नहीं दी। दोबारा माइक दबाएं।"
-            : "Voice not detected. Tap mic again."
-        );
+        setSpeechFeedback(t.speechNotDetected);
       };
 
       recognition.onend = () => {
@@ -400,17 +419,15 @@ export default function CheckInPage() {
       setSelectedQueueId(emergencyQueue.id);
     }
 
-    setChiefComplaint("🚨 तत्काल आपातकाल / IMMEDIATE CODE RED EMERGENCY");
-    setPurpose("आपातकालीन चिकित्सा सहायता / Acute Resuscitation");
+    setChiefComplaint(`IMMEDIATE CODE RED EMERGENCY: ${t.emergencySosHeader}`);
+    setPurpose(t.emergencySosBadge);
 
     // Audio confirmation
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(
-          "आपातकाल दर्ज किया गया। कृपया सीधे इमरजेंसी वार्ड में जाएं।"
-        );
-        utterance.lang = "hi-IN";
+        const utterance = new SpeechSynthesisUtterance(t.audioEmergencyAlert);
+        utterance.lang = currentLangOption.speechLocale;
         window.speechSynthesis.speak(utterance);
       } catch (e) {}
     }
@@ -421,13 +438,13 @@ export default function CheckInPage() {
     if (e) e.preventDefault();
 
     if (!selectedQueueId) {
-      setError("कृपया अस्पताल विभाग या श्रेणी चुनें (Please select department).");
+      setError(t.errorSelectDept);
       return;
     }
 
     const complaint = (chiefComplaint || purpose).trim();
     if (!complaint) {
-      setError("कृपया चित्र पर टैप करें या बोलकर बताएं (Please select a symptom picture or speak).");
+      setError(t.errorSelectSymptom);
       return;
     }
 
@@ -438,8 +455,8 @@ export default function CheckInPage() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance("आपका टोकन तैयार किया जा रहा है।");
-        utterance.lang = "hi-IN";
+        const utterance = new SpeechSynthesisUtterance(t.audioTokenGen);
+        utterance.lang = currentLangOption.speechLocale;
         window.speechSynthesis.speak(utterance);
       } catch (e) {}
     }
@@ -540,19 +557,22 @@ export default function CheckInPage() {
               href="/"
               className="inline-flex items-center gap-1 text-xs font-mono text-zinc-400 hover:text-white"
             >
-              <ChevronLeft className="w-3.5 h-3.5" /> मुख्य पृष्ठ (Home)
+              <ChevronLeft className="w-3.5 h-3.5" /> {t.homeNav}
             </Link>
           </div>
           <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-white flex items-center gap-2">
-            <span>अस्पताल टोकन व जांच</span>
-            <span className="text-emerald-400 text-sm font-normal">/ Patient OPD Token</span>
+            <span>{t.pageTitle}</span>
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            बिना कतार में खड़े रहे तुरंत टोकन प्राप्त करें (Fast Accessible OPD Intake)
+            {t.pageSubtitle}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <LanguageSelector
+            currentLanguage={currentLang}
+            onLanguageChange={handleLanguageChange}
+          />
           <ConnectionBadge state={connectionState} />
 
           {/* Discreet Staff Switch */}
@@ -563,7 +583,7 @@ export default function CheckInPage() {
           >
             <Settings className="w-3.5 h-3.5" />
             <span>
-              {intakeMode === "EASY" ? "डॉक्टर फॉर्म (Staff View)" : "सरल मोड (Easy Mode)"}
+              {intakeMode === "EASY" ? t.staffViewBtn : t.easyViewBtn}
             </span>
           </button>
         </div>
@@ -581,17 +601,17 @@ export default function CheckInPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-red-400">
-                  तत्काल आपातकालीन सहायता
+                  {t.emergencySosBadge}
                 </span>
                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-red-500/20 text-red-300">
-                  CODE RED SOS
+                  CODE RED
                 </span>
               </div>
               <h2 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                सीने में तेज दर्द, सांस न आना, भारी खून, बेहोशी?
+                {t.emergencySosHeader}
               </h2>
               <p className="text-xs text-zinc-300">
-                फॉर्म भरने की जरूरत नहीं है — तुरंत 1-क्लिक में आपातकालीन नंबर पाएं।
+                {t.emergencySosSub}
               </p>
             </div>
           </div>
@@ -602,7 +622,7 @@ export default function CheckInPage() {
             className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-red-600 hover:bg-red-500 active:scale-95 text-white font-mono font-bold text-sm shadow-md shadow-red-900/50 transition-all flex-shrink-0"
           >
             <ShieldAlert className="w-4 h-4 animate-bounce" />
-            <span>🚨 1-क्लिक इमरजेंसी सहायता (SOS)</span>
+            <span>{t.emergencySosBtn}</span>
           </button>
         </div>
       </div>
@@ -619,17 +639,17 @@ export default function CheckInPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
-                  बोलकर टोकन लें (Voice-First Intake)
+                  {t.voiceIntakeBadge}
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   AI ASSISTANT
                 </span>
               </div>
               <h2 className="text-base sm:text-lg font-bold text-white mt-1">
-                माइक पर बोलें — टोकन, सावधानियां व डॉक्टर जांच की जानकारी तुरंत पाएं
+                {t.voiceIntakeHeader}
               </h2>
               <p className="text-xs text-zinc-300 mt-0.5">
-                Speak symptoms in Hindi or English. AI automatically assigns department, gives precautions & expected doctor tests.
+                {t.voiceIntakeSub}
               </p>
             </div>
           </div>
@@ -640,7 +660,7 @@ export default function CheckInPage() {
             className="flex-shrink-0 py-3 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-bold text-sm tracking-wide transition shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Mic className="w-4 h-4" />
-            <span>🎙️ बोलकर टोकन लें / Voice Intake</span>
+            <span>{t.voiceIntakeBtn}</span>
           </button>
         </div>
       </div>
@@ -664,37 +684,16 @@ export default function CheckInPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                    कदम 1 / Step 1: बोलकर बताएं
+                    {t.step1Badge}: {t.step1Header}
                   </span>
                   <h3 className="text-base font-bold text-white mt-0.5">
-                    माइक दबाकर बोलें (Tap Mic & Speak)
+                    {t.step1Sub}
                   </h3>
                 </div>
 
-                {/* Voice Language Selector */}
-                <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-1 rounded-lg text-xs font-mono">
-                  <button
-                    type="button"
-                    onClick={() => setVoiceLang("hi-IN")}
-                    className={`px-2 py-1 rounded transition-colors ${
-                      voiceLang === "hi-IN"
-                        ? "bg-emerald-600 text-white font-bold"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    🇮🇳 हिंदी
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVoiceLang("en-IN")}
-                    className={`px-2 py-1 rounded transition-colors ${
-                      voiceLang === "en-IN"
-                        ? "bg-emerald-600 text-white font-bold"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    🇬🇧 English
-                  </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>{currentLangOption.label}</span>
                 </div>
               </div>
 
@@ -719,12 +718,10 @@ export default function CheckInPage() {
 
                 <div>
                   <span className="text-sm font-bold text-zinc-100 block">
-                    {isListening
-                      ? "🔴 सुन रहे हैं... कृपया बोलें... (Listening...)"
-                      : "माइक दबाकर अपनी परेशानी बताएं"}
+                    {isListening ? t.listening : t.tapToSpeak}
                   </span>
                   <span className="text-xs text-zinc-400 block mt-0.5">
-                    (उदा. &quot;सीने में दर्द है&quot; या &quot;बच्चे को तेज बुखार है&quot;)
+                    {t.step1Sub}
                   </span>
                 </div>
 
@@ -740,20 +737,28 @@ export default function CheckInPage() {
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
               <div>
                 <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                  कदम 2 / Step 2: या चित्र पर टैप करें
+                  {t.step2Badge}
                 </span>
                 <h3 className="text-base font-bold text-white mt-0.5">
-                  बीमारी का चित्र चुनें (Select Illness Picture)
+                  {t.step2Header}
                 </h3>
-                <p className="text-xs text-zinc-400">
-                  जो तकलीफ महसूस हो रही है, उस बड़े चित्र को दबाएं:
-                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {PICTORIAL_SYMPTOMS.map((card) => {
                   const Icon = card.icon;
                   const isSelected = selectedPictorialId === card.id;
+                  const cardTrans =
+                    PICTORIAL_CARD_TRANSLATIONS[currentLang]?.[card.id] || {
+                      title: card.hindiTitle,
+                      sub: card.hindiSub,
+                    };
+                  const severityLabel =
+                    card.severity === "EMERGENCY"
+                      ? t.severityEmergency
+                      : card.severity === "URGENT"
+                      ? t.severityUrgent
+                      : t.severityStandard;
 
                   return (
                     <button
@@ -781,7 +786,7 @@ export default function CheckInPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-sm font-bold text-white truncate">
-                            {card.hindiTitle}
+                            {cardTrans.title}
                           </span>
                           <span
                             className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded font-bold ${
@@ -792,14 +797,11 @@ export default function CheckInPage() {
                                 : "bg-emerald-500/20 text-emerald-300"
                             }`}
                           >
-                            {card.severityLabelHindi}
+                            {severityLabel}
                           </span>
                         </div>
-                        <span className="text-[11px] text-zinc-400 block font-medium">
-                          {card.englishTitle}
-                        </span>
-                        <span className="text-[10px] text-zinc-500 block mt-1 line-clamp-1">
-                          {card.hindiSub}
+                        <span className="text-[11px] text-zinc-400 block font-medium mt-0.5">
+                          {cardTrans.sub}
                         </span>
                       </div>
 
@@ -819,41 +821,39 @@ export default function CheckInPage() {
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
               <div>
                 <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                  कदम 3 / Step 3: अंतिम पुष्टि
+                  {t.step3Badge}
                 </span>
                 <h3 className="text-base font-bold text-white mt-0.5">
-                  टोकन किसके लिए है? (Who is the patient?)
+                  {t.step3Header}
                 </h3>
               </div>
 
               {/* Relationship Quick Pills */}
               <div className="flex flex-wrap gap-2">
-                {["स्वयं (Self)", "माता/पिता (Parent)", "बच्चा (Child)", "अन्य (Other)"].map(
-                  (rel) => (
-                    <button
-                      key={rel}
-                      type="button"
-                      onClick={() => setPatientRelationship(rel)}
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors ${
-                        patientRelationship === rel
-                          ? "border-emerald-500 bg-emerald-950/50 text-emerald-300 font-bold"
-                          : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700"
-                      }`}
-                    >
-                      {rel}
-                    </button>
-                  )
-                )}
+                {[t.relSelf, t.relFamily, t.relChild, t.relElderly].map((rel) => (
+                  <button
+                    key={rel}
+                    type="button"
+                    onClick={() => setPatientRelationship(rel)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors ${
+                      patientRelationship === rel
+                        ? "border-emerald-500 bg-emerald-950/50 text-emerald-300 font-bold"
+                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    {rel}
+                  </button>
+                ))}
               </div>
 
               {/* Optional Name */}
               <div>
                 <label className="block text-xs text-zinc-400 mb-1">
-                  मरीज का नाम (Patient Name) - <i>वैकल्पिक / Optional</i>
+                  {t.step3Header}
                 </label>
                 <input
                   type="text"
-                  placeholder="उदा. राहुल कुमार / Rahul Kumar"
+                  placeholder={t.patientNamePlaceholder}
                   value={visitorName}
                   onChange={(e) => setVisitorName(e.target.value)}
                   className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
@@ -870,14 +870,9 @@ export default function CheckInPage() {
                 >
                   <ArrowRight className="w-6 h-6" />
                   <span>
-                    {isSubmitting
-                      ? "टोकन बनाया जा रहा है... (Creating...)"
-                      : "🎫 टोकन नंबर प्राप्त करें (Get Patient Token)"}
+                    {isSubmitting ? t.submittingBtn : t.submitBtn}
                   </span>
                 </button>
-                <p className="text-[11px] text-zinc-500 text-center mt-2">
-                  टोकन मिलने के बाद आपका नंबर स्क्रीन पर बोला जाएगा और फोन पर दिखेगा।
-                </p>
               </div>
             </div>
           </div>

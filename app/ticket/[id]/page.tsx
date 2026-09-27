@@ -17,6 +17,7 @@ import {
   Volume2,
   VolumeX,
   Bell,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
@@ -27,6 +28,12 @@ import { EmergencyModal } from "@/components/visitor/EmergencyModal";
 import { LiveQueueHero } from "@/components/queue/QueuePositionCounter";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { PatientCareAssistant } from "@/components/visitor/PatientCareAssistant";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import {
+  LanguageCode,
+  SUPPORTED_LANGUAGES,
+  TICKET_TRANSLATIONS,
+} from "@/lib/i18n/languages";
 
 interface TokenDetail {
   id: string;
@@ -87,8 +94,22 @@ export default function VisitorMobilePassPage() {
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
   const [failSafeCountdown, setFailSafeCountdown] = useState<number>(60);
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
-  const [audioLanguage, setAudioLanguage] = useState<"hi-IN" | "en-IN">("hi-IN");
+  const [currentLang, setCurrentLang] = useState<LanguageCode>("hi");
+  const tt = TICKET_TRANSLATIONS[currentLang] || TICKET_TRANSLATIONS.hi;
+  const currentLangOption =
+    SUPPORTED_LANGUAGES.find((opt) => opt.code === currentLang) || SUPPORTED_LANGUAGES[0];
+  const [audioLanguage, setAudioLanguage] = useState<string>("hi-IN");
+  const [showEmergencyAdjustmentBanner, setShowEmergencyAdjustmentBanner] = useState<boolean>(false);
+  const prevWaitTimeRef = useRef<number | null>(null);
   const lastAnnouncedRef = useRef<string>("");
+
+  const handleLanguageChange = (lang: LanguageCode) => {
+    setCurrentLang(lang);
+    const opt = SUPPORTED_LANGUAGES.find((o) => o.code === lang);
+    if (opt) {
+      setAudioLanguage(opt.speechLocale);
+    }
+  };
 
   // Synthesize dual-tone hospital chime via Web Audio API (pre-speech attention alert)
   const playHospitalChime = useCallback(() => {
@@ -198,7 +219,16 @@ export default function VisitorMobilePassPage() {
         throw new Error(data.error || "Token not found");
       }
       setToken(data.token);
-      setEstimatedWaitMins(data.estimatedWaitMins || 0);
+      const newWait = data.estimatedWaitMins || 0;
+      if (
+        prevWaitTimeRef.current !== null &&
+        newWait > prevWaitTimeRef.current &&
+        data.token?.status === "WAITING"
+      ) {
+        setShowEmergencyAdjustmentBanner(true);
+      }
+      prevWaitTimeRef.current = newWait;
+      setEstimatedWaitMins(newWait);
       setPeopleAhead(data.peopleAhead || 0);
       setError(null);
     } catch (err: any) {
@@ -305,6 +335,13 @@ export default function VisitorMobilePassPage() {
               }
             : prev
         );
+      } else if (
+        event.type === "EMERGENCY_PROMOTED" &&
+        event.tokenId !== tokenId
+      ) {
+        // An emergency patient was admitted ahead! Trigger The Twist Alert Banner
+        setShowEmergencyAdjustmentBanner(true);
+        playHospitalChime();
       }
       fetchTokenState();
     },
@@ -393,6 +430,13 @@ export default function VisitorMobilePassPage() {
   };
   const currentStepIndex = getStageIndex(token.currentStage);
 
+  const jitStage: 1 | 2 | 3 =
+    peopleAhead <= 2 || estimatedWaitMins <= 5
+      ? 3
+      : (estimatedWaitMins <= 15 || peopleAhead <= 5)
+      ? 2
+      : 1;
+
   return (
     <div className="max-w-md mx-auto space-y-5 sm:space-y-6 pb-12 px-3 sm:px-0">
       {/* Top Header & Connection Badge */}
@@ -404,6 +448,10 @@ export default function VisitorMobilePassPage() {
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </Link>
         <div className="flex items-center gap-2">
+          <LanguageSelector
+            currentLanguage={currentLang}
+            onLanguageChange={handleLanguageChange}
+          />
           <button
             onClick={() => setShowQrModal(true)}
             className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
@@ -415,8 +463,7 @@ export default function VisitorMobilePassPage() {
         </div>
       </div>
 
-      {/* Surface Header */}
-      {/* Audio Announcement Controls & Live Proximity Status Bar */}
+      {/* Surface Header: Audio Announcement Controls */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3.5 space-y-2.5 shadow-md">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -435,78 +482,182 @@ export default function VisitorMobilePassPage() {
               ) : (
                 <VolumeX className="w-4 h-4 text-zinc-500" />
               )}
-              <span>{isAudioEnabled ? "आवाज़ चालू (Audio ON)" : "मूक (Mute)"}</span>
+              <span>{isAudioEnabled ? tt.audioTurnNotice : tt.audioMute}</span>
             </button>
 
-            {/* Test Audio Button */}
+            {/* Test Audio Button (Zero Emojis) */}
             {isAudioEnabled && (
               <button
                 type="button"
                 onClick={handleTestAudio}
-                className="px-2 py-1 rounded text-[11px] font-mono text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 transition-colors"
                 title="Test Voice Announcement"
               >
-                🔊 टेस्ट
+                <Volume2 className="w-3 h-3 text-zinc-400" />
+                <span>{tt.audioTest}</span>
               </button>
             )}
           </div>
 
-          {/* Language Switcher */}
-          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg text-xs font-mono">
-            <button
-              type="button"
-              onClick={() => setAudioLanguage("hi-IN")}
-              className={`px-2 py-1 rounded text-[11px] transition-colors ${
-                audioLanguage === "hi-IN"
-                  ? "bg-emerald-600 text-white font-bold"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              🇮🇳 हिंदी
-            </button>
-            <button
-              type="button"
-              onClick={() => setAudioLanguage("en-IN")}
-              className={`px-2 py-1 rounded text-[11px] transition-colors ${
-                audioLanguage === "en-IN"
-                  ? "bg-emerald-600 text-white font-bold"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              🇬🇧 Eng
-            </button>
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>{currentLangOption.label}</span>
           </div>
         </div>
-
-        {/* Live Proximity Milestone Alert Banners */}
-        {token.status === "WAITING" && peopleAhead <= 2 && (
-          <div className="rounded-lg border border-orange-500/80 bg-orange-950/40 p-2.5 flex items-center justify-between gap-2 animate-pulse">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping" />
-              <span className="text-xs font-bold text-orange-200">
-                ⚠️ ध्यान दें: केवल {peopleAhead} मरीज आगे हैं!
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-orange-300 font-bold uppercase bg-orange-900/60 px-2 py-0.5 rounded border border-orange-700/60">
-              कमरे के बाहर पहुंचें
-            </span>
-          </div>
-        )}
-
-        {token.status === "WAITING" && peopleAhead > 2 && peopleAhead <= 5 && (
-          <div className="rounded-lg border border-amber-500/70 bg-amber-950/30 p-2.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span className="text-xs font-bold text-amber-200">
-                🔔 केवल {peopleAhead} मरीज आगे हैं।
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-amber-300 bg-amber-900/50 px-2 py-0.5 rounded border border-amber-700/50">
-              ओपीडी के पास आ जाएं
-            </span>
-          </div>
-        )}
       </div>
+
+      {/* =========================================================================
+          PHASE 2: THE "TWIST" LIVE ALERT BANNER (EMERGENCY LINE-JUMP ADJUSTMENT)
+          ========================================================================= */}
+      {showEmergencyAdjustmentBanner && token.status === "WAITING" && (
+        <div className="rounded-xl border-2 border-amber-500/80 bg-gradient-to-r from-amber-950/70 via-zinc-950 to-amber-950/70 p-3.5 space-y-2 shadow-lg shadow-amber-950/40 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0">
+                <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-300 block">
+                  {tt.twistBannerTitle}
+                </span>
+                <span className="text-[10px] font-mono text-amber-400/80">
+                  +5 MIN REFORECAST
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowEmergencyAdjustmentBanner(false)}
+              className="px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold text-amber-300 hover:text-white bg-amber-900/60 hover:bg-amber-800 border border-amber-700/60 transition-colors"
+            >
+              {tt.twistBannerDismiss}
+            </button>
+          </div>
+          <p className="text-xs text-amber-200/90 leading-relaxed font-medium">
+            {tt.twistBannerText}
+          </p>
+        </div>
+      )}
+
+      {/* =========================================================================
+          PHASE 3: 3-COLOR TRAFFIC-LIGHT JUST-IN-TIME (JIT) STATUS BAR
+          Green: Safe to wait outside | Yellow: Head to OPD | Blue: At doctor door
+          ========================================================================= */}
+      {token.status === "WAITING" && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3.5 space-y-3 shadow-md">
+          {/* 3-Stage Progress Segment */}
+          <div className="grid grid-cols-3 gap-2">
+            {/* Stage 1: Green */}
+            <div
+              className={`flex items-center gap-1.5 p-2 rounded-lg border text-center transition-all ${
+                jitStage === 1
+                  ? "border-emerald-500 bg-emerald-950/60 text-emerald-300 ring-1 ring-emerald-500/50 shadow-sm"
+                  : jitStage > 1
+                  ? "border-zinc-800 bg-zinc-900/60 text-zinc-500 opacity-60"
+                  : "border-zinc-850 bg-zinc-900/30 text-zinc-600"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  jitStage === 1 ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"
+                }`}
+              />
+              <span className="text-[10px] font-mono font-bold truncate">
+                {tt.jitStage1Title}
+              </span>
+            </div>
+
+            {/* Stage 2: Yellow */}
+            <div
+              className={`flex items-center gap-1.5 p-2 rounded-lg border text-center transition-all ${
+                jitStage === 2
+                  ? "border-amber-500 bg-amber-950/60 text-amber-300 ring-1 ring-amber-500/50 shadow-sm"
+                  : jitStage > 2
+                  ? "border-zinc-800 bg-zinc-900/60 text-zinc-500 opacity-60"
+                  : "border-zinc-850 bg-zinc-900/30 text-zinc-600"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  jitStage === 2 ? "bg-amber-400 animate-pulse" : "bg-zinc-600"
+                }`}
+              />
+              <span className="text-[10px] font-mono font-bold truncate">
+                {tt.jitStage2Title}
+              </span>
+            </div>
+
+            {/* Stage 3: Blue */}
+            <div
+              className={`flex items-center gap-1.5 p-2 rounded-lg border text-center transition-all ${
+                jitStage === 3
+                  ? "border-blue-500 bg-blue-950/60 text-blue-300 ring-1 ring-blue-500/50 shadow-sm"
+                  : "border-zinc-850 bg-zinc-900/30 text-zinc-600"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  jitStage === 3 ? "bg-blue-400 animate-pulse" : "bg-zinc-600"
+                }`}
+              />
+              <span className="text-[10px] font-mono font-bold truncate">
+                {tt.jitStage3Title}
+              </span>
+            </div>
+          </div>
+
+          {/* Active Stage Callout Card (High contrast for low-literacy clarity, zero emojis) */}
+          <div
+            className={`p-3 rounded-lg border flex items-center justify-between gap-3 ${
+              jitStage === 1
+                ? "border-emerald-600/60 bg-emerald-950/40 text-emerald-200"
+                : jitStage === 2
+                ? "border-amber-600/70 bg-amber-950/40 text-amber-200"
+                : "border-blue-600/80 bg-blue-950/50 text-blue-200"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                  jitStage === 1
+                    ? "bg-emerald-500 animate-pulse"
+                    : jitStage === 2
+                    ? "bg-amber-400 animate-pulse"
+                    : "bg-blue-500 animate-ping"
+                }`}
+              />
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider block">
+                  {jitStage === 1
+                    ? tt.jitStage1Title
+                    : jitStage === 2
+                    ? tt.jitStage2Title
+                    : tt.jitStage3Title}
+                </span>
+                <span className="text-[11px] opacity-90 block mt-0.5">
+                  {jitStage === 1
+                    ? `${tt.jitStage1Desc} (~${estimatedWaitMins}m)`
+                    : jitStage === 2
+                    ? `${tt.jitStage2Desc} (${peopleAhead} ahead)`
+                    : `${tt.jitStage3Desc} (${peopleAhead} ahead)`}
+                </span>
+              </div>
+            </div>
+
+            <span
+              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase flex-shrink-0 ${
+                jitStage === 1
+                  ? "bg-emerald-900/60 border-emerald-700/60 text-emerald-300"
+                  : jitStage === 2
+                  ? "bg-amber-900/60 border-amber-700/60 text-amber-300"
+                  : "bg-blue-900/60 border-blue-700/60 text-blue-300"
+              }`}
+            >
+              {jitStage === 1 ? "OUTSIDE" : jitStage === 2 ? "APPROACH" : "DOOR STEP"}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Visual Linear 4-Stage Stepper */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 space-y-2">
@@ -612,7 +763,7 @@ export default function VisitorMobilePassPage() {
       {/* Smart Grounded Patient Care Assistant (Precautions, Expected Tests & FAQs) */}
       <PatientCareAssistant
         token={token}
-        preferredLang={audioLanguage === "hi-IN" ? "hi" : "en"}
+        preferredLang={currentLang === "hi" ? "hi" : "en"}
       />
 
       {/* Dominant Visual State: NOW SERVING TAKEOVER */}
