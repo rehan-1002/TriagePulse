@@ -58,10 +58,36 @@ export async function reindexQueuePositions(db: any = prisma, queueId: string) {
       queueId,
       status: "WAITING",
     },
+    include: {
+      emergencyRequest: true,
+    },
   });
 
-  // Sort tokens by dynamic priority score (R) descending
+  // Sort tokens:
+  // 1. If both are EMERGENCY: The latest emergency SOS trigger takes Position #1,
+  //    and the previous emergency person shifts to Position #2.
+  // 2. EMERGENCY tokens always come before STANDARD tokens.
+  // 3. Among STANDARD tokens, sort by dynamic Acuity-Time Hybrid Priority Ranking.
   waitingTokens.sort((a: any, b: any) => {
+    const aIsEmergency = a.priority === "EMERGENCY";
+    const bIsEmergency = b.priority === "EMERGENCY";
+
+    if (aIsEmergency && bIsEmergency) {
+      const aEmergencyTime = a.emergencyRequest?.requestedAt
+        ? new Date(a.emergencyRequest.requestedAt).getTime()
+        : new Date(a.createdAt).getTime();
+      const bEmergencyTime = b.emergencyRequest?.requestedAt
+        ? new Date(b.emergencyRequest.requestedAt).getTime()
+        : new Date(b.createdAt).getTime();
+
+      if (bEmergencyTime !== aEmergencyTime) {
+        return bEmergencyTime - aEmergencyTime; // Newest emergency SOS takes Position #1
+      }
+    }
+
+    if (aIsEmergency && !bIsEmergency) return -1;
+    if (!aIsEmergency && bIsEmergency) return 1;
+
     const scoreA = calculatePriorityScore(a);
     const scoreB = calculatePriorityScore(b);
     if (scoreB !== scoreA) {
