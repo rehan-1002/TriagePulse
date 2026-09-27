@@ -89,7 +89,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
     colorBg: "bg-red-950/40 hover:bg-red-950/60",
     colorText: "text-red-400",
     defaultComplaint: "छाती में तेज दर्द / Severe Chest Pain - Acute Cardiac Concern",
-    preferredQueueCode: "A",
+    preferredQueueCode: "ED",
   },
   {
     id: "breathing-trouble",
@@ -105,7 +105,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
     colorBg: "bg-amber-950/40 hover:bg-amber-950/60",
     colorText: "text-amber-400",
     defaultComplaint: "सांस लेने में तकलीफ / Shortness of Breath - Respiratory Distress",
-    preferredQueueCode: "A",
+    preferredQueueCode: "ED",
   },
   {
     id: "severe-bleeding",
@@ -121,7 +121,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
     colorBg: "bg-red-950/40 hover:bg-red-950/60",
     colorText: "text-red-400",
     defaultComplaint: "गंभीर चोट या खून बहना / Severe Bleeding and Trauma",
-    preferredQueueCode: "A",
+    preferredQueueCode: "ED",
   },
   {
     id: "pregnancy-labour",
@@ -137,7 +137,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
     colorBg: "bg-purple-950/40 hover:bg-purple-950/60",
     colorText: "text-purple-400",
     defaultComplaint: "प्रसव पीड़ा या गर्भावस्था संबंधी आपातकाल / Labour & Pregnancy Alert",
-    preferredQueueCode: "B",
+    preferredQueueCode: "TR",
   },
   {
     id: "sick-baby",
@@ -153,7 +153,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
     colorBg: "bg-blue-950/40 hover:bg-blue-950/60",
     colorText: "text-blue-400",
     defaultComplaint: "शिशु या बच्चा बीमार / Pediatric Acute Assessment",
-    preferredQueueCode: "B",
+    preferredQueueCode: "OPD",
   },
   {
     id: "high-fever",
@@ -169,7 +169,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
     colorBg: "bg-yellow-950/30 hover:bg-yellow-950/50",
     colorText: "text-yellow-400",
     defaultComplaint: "तेज बुखार व चक्कर / High Fever, Chills and Weakness",
-    preferredQueueCode: "B",
+    preferredQueueCode: "OPD",
   },
   {
     id: "general-consult",
@@ -185,7 +185,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
     colorBg: "bg-emerald-950/30 hover:bg-emerald-950/50",
     colorText: "text-emerald-400",
     defaultComplaint: "सामान्य डॉक्टर जांच / Routine General Consultation",
-    preferredQueueCode: "C",
+    preferredQueueCode: "OPD",
   },
 ];
 

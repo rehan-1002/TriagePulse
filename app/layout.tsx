@@ -1,13 +1,32 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { Activity, Tv, Monitor, ShieldCheck, UserCheck } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { PwaProvider, InstallPwaNavButton } from "@/components/pwa/PwaProvider";
+
+export const viewport: Viewport = {
+  themeColor: "#059669",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: "TriagePulse | Dynamic OPD Wait-Time & Clinical Triage Engine",
   description:
     "Real-time acuity-aware hospital OPD token and wait-time re-forecasting platform for patients and clinicians.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TriagePulse",
+  },
+  icons: {
+    icon: "/icons/icon-192x192.png",
+    apple: "/icons/apple-touch-icon.png",
+    shortcut: "/icons/favicon-32x32.png",
+  },
 };
 
 export default function RootLayout({
@@ -18,6 +37,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -36,6 +59,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white overflow-x-hidden transition-colors duration-300">
+        <PwaProvider>
         {/* Global Operational Top Bar */}
         <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 transition-colors duration-300">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
@@ -93,6 +117,8 @@ export default function RootLayout({
                 <span className="hidden md:inline">OPD Signage TV</span>
               </Link>
 
+              <InstallPwaNavButton />
+
               <div className="ml-0.5 sm:ml-1 pl-1 sm:pl-1.5 border-l border-zinc-200 dark:border-zinc-800 shrink-0">
                 <ThemeToggle />
               </div>
@@ -112,6 +138,7 @@ export default function RootLayout({
             <span>Live Emergency Re-Forecasting • Zero-Install Web & Basic Phone Ready</span>
           </div>
         </footer>
+        </PwaProvider>
       </body>
     </html>
   );

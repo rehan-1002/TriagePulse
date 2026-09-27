@@ -44,6 +44,17 @@ export async function GET() {
       })),
     }));
 
+    // Sort queues logically by clinical order (TR -> ED -> OPD -> DX -> RX)
+    const queueOrder: Record<string, number> = {
+      TR: 1,
+      ED: 2,
+      OPD: 3,
+      DX: 4,
+      RX: 5,
+    };
+
+    formatted.sort((a, b) => (queueOrder[a.code] || 99) - (queueOrder[b.code] || 99));
+
     return NextResponse.json({ success: true, queues: formatted });
   } catch (err: any) {
     console.error("Error fetching queues:", err);

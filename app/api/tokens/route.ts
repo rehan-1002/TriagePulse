@@ -112,8 +112,18 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    let targetQueueId = queueId;
+    if (triageResult.triageLevel === "LEVEL_1_RESUSCITATION" || triageResult.triageLevel === "LEVEL_2_EMERGENT") {
+      const edQueue = await prisma.queue.findFirst({
+        where: { code: "ED", status: "ACTIVE" },
+      });
+      if (edQueue) {
+        targetQueueId = edQueue.id;
+      }
+    }
+
     const token = await createToken({
-      queueId,
+      queueId: targetQueueId,
       visitorSessionId: sessionId,
       visitorName: cleanVisitorName,
       purpose: cleanPurpose,

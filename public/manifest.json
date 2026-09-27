@@ -1,0 +1,61 @@
+{
+  "name": "TriagePulse | Hospital Queue & Clinical Triage",
+  "short_name": "TriagePulse",
+  "description": "AI-driven smart hospital triage, live OPD queue tracking, and zero-delay emergency care.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#09090b",
+  "theme_color": "#059669",
+  "categories": ["medical", "health", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "OPD Check-In (पर्ची बनाएं)",
+      "short_name": "Check-In",
+      "description": "Join OPD Queue or Voice Symptom Triage",
+      "url": "/join",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live Hospital Display",
+      "short_name": "Live Display",
+      "description": "View Real-time OPD Hall Calling Screen",
+      "url": "/display",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Doctor Workstation",
+      "short_name": "Doctor Cabin",
+      "description": "Clinical Queue & Triage Counter",
+      "url": "/counter",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
