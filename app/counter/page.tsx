@@ -31,6 +31,7 @@ import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { DoctorClinicalCopilot } from "@/components/counter/DoctorClinicalCopilot";
 import { broadcastLocalQueueEvent } from "@/lib/realtime/clientBroadcast";
 import { useHospital } from "@/components/hospital/HospitalProvider";
+import { isTokenForHospital } from "@/lib/hospitals/data";
 
 interface CounterDetail {
   id: string;
@@ -270,9 +271,12 @@ export default function CounterConsolePage() {
     );
   }, [allQueues]);
 
-  // Dynamically compute waiting tokens for the active filter view
+  // Dynamically compute waiting tokens for the active filter view, scoped to current hospital
   const waitingTokens: WaitingToken[] = useMemo(() => {
     let list = [...allWaitingTokens];
+
+    // Strictly scope tokens to this specific hospital
+    list = list.filter((t) => isTokenForHospital(t, currentHospital.code));
 
     if (selectedQueueFilter === "ASSIGNED") {
       if (currentCounter?.queueId) {

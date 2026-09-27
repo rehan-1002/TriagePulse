@@ -34,9 +34,10 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { useHospital } from "@/components/hospital/HospitalProvider";
+import { isTokenForHospital } from "@/lib/hospitals/data";
 
 export default function AdminCockpitPage() {
-  const { currentHospital, setHospitalId, hospitals } = useHospital();
+  const { currentHospital, setHospitalId, hospitals, isAllHospitals } = useHospital();
   const [activeTab, setActiveTab] = useState<"overview" | "emergency" | "tokens" | "analytics" | "simulation">("overview");
   const [simTargetHospitalId, setSimTargetHospitalId] = useState<string>("aiims-delhi");
   const [simPatientCount, setSimPatientCount] = useState<number>(6);
@@ -244,10 +245,16 @@ export default function AdminCockpitPage() {
     }
   };
 
-  const pendingEmergencies = emergencyRequests.filter((e) => e.status === "PENDING");
+  const pendingEmergencies = emergencyRequests.filter((e) => {
+    if (e.status !== "PENDING") return false;
+    return isAllHospitals || isTokenForHospital(e.token, currentHospital.code);
+  });
 
-  // Filter tokens for directory
+  // Filter tokens for directory, strictly scoped to current hospital (unless All Hospitals is active)
   const filteredTokens = tokens.filter((t) => {
+    const matchesHospital = isAllHospitals || isTokenForHospital(t, currentHospital.code);
+    if (!matchesHospital) return false;
+
     const matchesSearch =
       tokenSearch.trim() === "" ||
       t.displayNumber.toLowerCase().includes(tokenSearch.toLowerCase()) ||

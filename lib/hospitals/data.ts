@@ -102,3 +102,26 @@ export const DEFAULT_HOSPITAL_ID = "aiims-delhi";
 export function getHospitalById(id: string): Hospital {
   return HOSPITALS.find((h) => h.id === id) || HOSPITALS[0];
 }
+
+export function isTokenForHospital(token: any, hospitalCode: string): boolean {
+  if (!hospitalCode) return true;
+
+  // 1. Check riskFlags if present
+  if (Array.isArray(token?.riskFlags) && token.riskFlags.includes(`HOSPITAL_${hospitalCode}`)) {
+    return true;
+  }
+
+  // 2. Check visitorName / patientName
+  const name = token?.visitorName || token?.patientName || "";
+  if (name.includes(`[${hospitalCode}]`)) {
+    return true;
+  }
+
+  // 3. Fallback: If token has no hospital tag at all, attribute to default hospital (AIIMS)
+  if (!name.includes("[") && hospitalCode === "AIIMS") {
+    return true;
+  }
+
+  return false;
+}
+
