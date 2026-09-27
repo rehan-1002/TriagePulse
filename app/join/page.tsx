@@ -191,6 +191,16 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
   },
 ];
 
+const getTriageIcon = (id: string) => {
+  if (id.includes("cardiac") || id.includes("chest") || id.includes("stemi")) return HeartPulse;
+  if (id.includes("trauma") || id.includes("bleed") || id.includes("burn") || id.includes("fracture") || id.includes("bite")) return Droplet;
+  if (id.includes("stroke") || id.includes("neuro") || id.includes("maternity") || id.includes("labour")) return Activity;
+  if (id.includes("pulmonary") || id.includes("asthma") || id.includes("breath")) return Wind;
+  if (id.includes("pediatric") || id.includes("baby")) return Baby;
+  if (id.includes("fever") || id.includes("dengue") || id.includes("oncology")) return Thermometer;
+  return Stethoscope;
+};
+
 export default function CheckInPage() {
   const router = useRouter();
   const { currentHospital, setHospitalId } = useHospital();
@@ -262,10 +272,10 @@ export default function CheckInPage() {
     }
   }, []);
 
-  // Fetch initial queues
+  // Fetch initial queues strictly scoped to active hospital
   const fetchQueues = useCallback(async () => {
     try {
-      const res = await fetch("/api/queues", { cache: "no-store" });
+      const res = await fetch(`/api/queues?hospitalCode=${currentHospital.code}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.queues) {
         setQueues(data.queues);
@@ -279,7 +289,7 @@ export default function CheckInPage() {
     } catch (err) {
       console.error("Failed to load queues:", err);
     }
-  }, []);
+  }, [currentHospital.code]);
 
   useEffect(() => {
     fetchQueues();
@@ -300,7 +310,7 @@ export default function CheckInPage() {
   }, [fetchQueues]);
 
   // Handle Pictorial Card Selection
-  const handleSelectPictorial = (card: PictorialCard) => {
+  const handleSelectPictorial = (card: any) => {
     setSelectedPictorialId(card.id);
     setChiefComplaint(card.defaultComplaint);
     setPurpose(card.defaultComplaint);
@@ -311,7 +321,7 @@ export default function CheckInPage() {
       if (matched) {
         setSelectedQueueId(matched.id);
       } else {
-        setSelectedQueueId(queues[0].id);
+        setSelectedQueueId(queues[0]?.id || "");
       }
     }
 
@@ -319,15 +329,8 @@ export default function CheckInPage() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
-        const cardTrans = PICTORIAL_CARD_TRANSLATIONS[currentLang]?.[card.id] || {
-          title: card.hindiTitle,
-          sub: card.hindiSub,
-        };
-        const utterance = new SpeechSynthesisUtterance(
-          card.severity === "EMERGENCY"
-            ? `${cardTrans.title}. ${t.severityEmergency}.`
-            : cardTrans.title
-        );
+        const text = currentLang === "en" ? card.englishTitle : card.hindiTitle;
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = currentLangOption.speechLocale;
         utterance.rate = 1.0;
         window.speechSynthesis.speak(utterance);
@@ -679,26 +682,31 @@ export default function CheckInPage() {
                 <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-bold uppercase">
                   {t.step2Badge}
                 </span>
-                <h3 className="text-sm sm:text-base font-bold text-white">
-                  {t.step2Header}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-bold uppercase">
+                    {t.step2Badge}
+                  </span>
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    {currentHospital.shortName} • Triage Intake Protocol
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400">
+                  {currentHospital.triageQuestions?.length || 4} Specific Protocols
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PICTORIAL_SYMPTOMS.map((card) => {
-                  const Icon = card.icon;
+                {(currentHospital.triageQuestions || PICTORIAL_SYMPTOMS).map((card: any) => {
+                  const Icon = getTriageIcon(card.id);
                   const isSelected = selectedPictorialId === card.id;
-                  const cardTrans =
-                    PICTORIAL_CARD_TRANSLATIONS[currentLang]?.[card.id] || {
-                      title: card.hindiTitle,
-                      sub: card.hindiSub,
-                    };
+                  const title = currentLang === "en" ? (card.englishTitle || card.hindiTitle) : card.hindiTitle;
+                  const sub = currentLang === "en" ? (card.englishSub || card.hindiSub) : card.hindiSub;
                   const severityLabel =
                     card.severity === "EMERGENCY"
-                      ? t.severityEmergency
+                      ? (currentLang === "en" ? card.severityLabelEnglish : card.severityLabelHindi || t.severityEmergency)
                       : card.severity === "URGENT"
-                      ? t.severityUrgent
-                      : t.severityStandard;
+                      ? (currentLang === "en" ? card.severityLabelEnglish : card.severityLabelHindi || t.severityUrgent)
+                      : (currentLang === "en" ? card.severityLabelEnglish : card.severityLabelHindi || t.severityStandard);
 
                   return (
                     <button
@@ -726,7 +734,7 @@ export default function CheckInPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-sm font-bold text-white truncate">
-                            {cardTrans.title}
+                            {title}
                           </span>
                           <span
                             className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded font-bold ${
@@ -741,7 +749,7 @@ export default function CheckInPage() {
                           </span>
                         </div>
                         <span className="text-[11px] text-zinc-400 block font-medium mt-0.5">
-                          {cardTrans.sub}
+                          {sub}
                         </span>
                       </div>
 
