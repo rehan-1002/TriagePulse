@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MessageSquare, Send, CheckCircle2, AlertCircle, X, Smartphone, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -11,6 +11,7 @@ interface SmsPassModalProps {
   position: number;
   estimatedWaitMins: number;
   queueName: string;
+  initialPhone?: string;
 }
 
 export function SmsPassModal({
@@ -20,8 +21,15 @@ export function SmsPassModal({
   position,
   estimatedWaitMins,
   queueName,
+  initialPhone = "",
 }: SmsPassModalProps) {
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(initialPhone);
+
+  useEffect(() => {
+    if (initialPhone) {
+      setPhone(initialPhone);
+    }
+  }, [initialPhone]);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;

@@ -205,6 +205,7 @@ export default function CheckInPage() {
   const [selectedQueueId, setSelectedQueueId] = useState<string>("");
   const [selectedPictorialId, setSelectedPictorialId] = useState<string>("");
   const [visitorName, setVisitorName] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [patientRelationship, setPatientRelationship] = useState<string>(t.relSelf);
   const [purpose, setPurpose] = useState<string>("");
   const [chiefComplaint, setChiefComplaint] = useState<string>("");
@@ -442,6 +443,7 @@ export default function CheckInPage() {
       if (bloodPressure.trim()) vitalsPayload.bloodPressure = bloodPressure.trim();
       if (age.trim()) vitalsPayload.age = Number(age.trim());
       if (knownConditions.trim()) vitalsPayload.knownConditions = knownConditions.trim();
+      if (phoneNumber.trim()) vitalsPayload.phoneNumber = phoneNumber.trim().replace(/\D/g, "").slice(-10);
 
       const finalPatientName =
         visitorName.trim() ||
@@ -753,6 +755,27 @@ export default function CheckInPage() {
                   onChange={(e) => setVisitorName(e.target.value)}
                   className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
                 />
+              </div>
+
+              {/* Optional Mobile Number for SMS */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs text-zinc-400">
+                    {t.phoneNumberLabel}
+                  </label>
+                  <span className="text-[10px] font-mono text-emerald-400 font-semibold">SMS ALERTS</span>
+                </div>
+                <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 focus-within:border-emerald-500 transition">
+                  <span className="text-xs font-mono text-zinc-500 mr-2 select-none">+91</span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    placeholder={t.phoneNumberPlaceholder}
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
+                    className="w-full bg-transparent text-sm font-mono text-white placeholder-zinc-600 focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* GIANT CALL TO ACTION BUTTON */}

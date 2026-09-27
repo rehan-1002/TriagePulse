@@ -972,6 +972,7 @@ export default function VisitorMobilePassPage() {
         position={peopleAhead + 1}
         estimatedWaitMins={estimatedWaitMins}
         queueName={token.queue?.name || "General OPD"}
+        initialPhone={(token.vitalSigns as any)?.phoneNumber || ""}
       />
 
       {/* Share / Save QR Modal */}

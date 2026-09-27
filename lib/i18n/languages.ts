@@ -71,6 +71,8 @@ export interface JoinTranslations {
   step3Badge: string;
   step3Header: string;
   patientNamePlaceholder: string;
+  phoneNumberLabel: string;
+  phoneNumberPlaceholder: string;
   relSelf: string;
   relFamily: string;
   relChild: string;
@@ -112,6 +114,8 @@ export const JOIN_TRANSLATIONS: Record<LanguageCode, JoinTranslations> = {
     step3Badge: "कदम 3",
     step3Header: "मरीज़ का नाम (वैकल्पिक)",
     patientNamePlaceholder: "मरीज़ का नाम लिखें",
+    phoneNumberLabel: "मोबाइल नंबर (वैकल्पिक - SMS सूचना के लिए)",
+    phoneNumberPlaceholder: "10 अंकों का मोबाइल नंबर (e.g. 9876543210)",
     relSelf: "स्वयं",
     relFamily: "परिवार का सदस्य",
     relChild: "शिशु / बच्चा",
@@ -149,8 +153,10 @@ export const JOIN_TRANSLATIONS: Record<LanguageCode, JoinTranslations> = {
     step2Badge: "Step 2",
     step2Header: "Or select your symptom picture below",
     step3Badge: "Step 3",
-    step3Header: "Patient Name (Optional)",
+    step3Header: "Patient Details (Optional)",
     patientNamePlaceholder: "Enter patient name",
+    phoneNumberLabel: "Mobile Number (Optional - for SMS updates)",
+    phoneNumberPlaceholder: "10-digit mobile number (e.g. 9876543210)",
     relSelf: "Self",
     relFamily: "Family Member",
     relChild: "Child",
@@ -190,6 +196,8 @@ export const JOIN_TRANSLATIONS: Record<LanguageCode, JoinTranslations> = {
     step3Badge: "पायरी 3",
     step3Header: "रुग्णाचे नाव (पर्यायी)",
     patientNamePlaceholder: "रुग्णाचे नाव लिहा",
+    phoneNumberLabel: "मोबाईल नंबर (पर्यायी - SMS सूचनांसाठी)",
+    phoneNumberPlaceholder: "10 अंकी मोबाईल नंबर (e.g. 9876543210)",
     relSelf: "स्वतः",
     relFamily: "कुटुंबातील सदस्य",
     relChild: "लहान मूल",
@@ -229,6 +237,8 @@ export const JOIN_TRANSLATIONS: Record<LanguageCode, JoinTranslations> = {
     step3Badge: "પગલું 3",
     step3Header: "દર્દીનું નામ (વૈકલ્પિક)",
     patientNamePlaceholder: "દર્દીનું નામ લખો",
+    phoneNumberLabel: "મોબાઇલ નંબર (વૈકલ્પિક - SMS સૂચના માટે)",
+    phoneNumberPlaceholder: "10 અંકનો મોબાઇલ નંબર (e.g. 9876543210)",
     relSelf: "પોતે",
     relFamily: "પરિવારના સભ્ય",
     relChild: "બાળક",
@@ -268,6 +278,8 @@ export const JOIN_TRANSLATIONS: Record<LanguageCode, JoinTranslations> = {
     step3Badge: "ধাপ 3",
     step3Header: "রোগীর নাম (ঐচ্ছিক)",
     patientNamePlaceholder: "রোগীর নাম লিখুন",
+    phoneNumberLabel: "মোবাইল নম্বর (ঐচ্ছিক - SMS আপডেটের জন্য)",
+    phoneNumberPlaceholder: "10 সংখ্যার মোবাইল নম্বর (e.g. 9876543210)",
     relSelf: "নিজে",
     relFamily: "পরিবারের সদস্য",
     relChild: "শিশু",
@@ -307,6 +319,8 @@ export const JOIN_TRANSLATIONS: Record<LanguageCode, JoinTranslations> = {
     step3Badge: "படி 3",
     step3Header: "நோயாளி பெயர் (விருப்பத்திற்குரியது)",
     patientNamePlaceholder: "நோயாளி பெயரை உள்ளிடவும்",
+    phoneNumberLabel: "மொபைல் எண் (விருப்பத்தேர்வு - SMS அறிவிப்புகளுக்கு)",
+    phoneNumberPlaceholder: "10 இலக்க மொபைல் எண் (e.g. 9876543210)",
     relSelf: "சுய",
     relFamily: "குடும்ப உறுப்பினர்",
     relChild: "குழந்தை",
