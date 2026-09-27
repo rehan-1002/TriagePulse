@@ -526,6 +526,8 @@ export interface TicketTranslations {
   audioTurnNotice: string;
   audioMute: string;
   audioTest: string;
+  emergencySosBtn: string;
+  cancelPassBtn: string;
 }
 
 export const TICKET_TRANSLATIONS: Record<LanguageCode, TicketTranslations> = {
@@ -542,6 +544,8 @@ export const TICKET_TRANSLATIONS: Record<LanguageCode, TicketTranslations> = {
     audioTurnNotice: "आवाज चालू",
     audioMute: "मूक",
     audioTest: "टेस्ट",
+    emergencySosBtn: "🚨 आपातकाल / गंभीर तकलीफ (Report Emergency SOS)",
+    cancelPassBtn: "पास रद्द करें (Cancel Pass)",
   },
   en: {
     twistBannerTitle: "Live Queue Adjustment",
@@ -556,6 +560,8 @@ export const TICKET_TRANSLATIONS: Record<LanguageCode, TicketTranslations> = {
     audioTurnNotice: "Audio ON",
     audioMute: "Muted",
     audioTest: "Test",
+    emergencySosBtn: "🚨 Report Emergency SOS / Deterioration",
+    cancelPassBtn: "Cancel My Care Pass",
   },
   mr: {
     twistBannerTitle: "थेट रांग समायोजन",
@@ -570,6 +576,8 @@ export const TICKET_TRANSLATIONS: Record<LanguageCode, TicketTranslations> = {
     audioTurnNotice: "आवाज चालू",
     audioMute: "शांत",
     audioTest: "चाचणी",
+    emergencySosBtn: "🚨 आपत्कालीन स्थिती / त्रास वाढला (Report Emergency SOS)",
+    cancelPassBtn: "पास रद्द करा (Cancel Pass)",
   },
   gu: {
     twistBannerTitle: "લાઇવ કતાર ગોઠવણ",
@@ -584,6 +592,8 @@ export const TICKET_TRANSLATIONS: Record<LanguageCode, TicketTranslations> = {
     audioTurnNotice: "અવાજ ચાલુ",
     audioMute: "શાંત",
     audioTest: "ટેસ્ટ",
+    emergencySosBtn: "🚨 ઇમરજન્સી / તકલીફ વધી (Report Emergency SOS)",
+    cancelPassBtn: "પાસ રદ કરો (Cancel Pass)",
   },
   bn: {
     twistBannerTitle: "লাইভ লাইন সমন্বয়",
@@ -598,6 +608,8 @@ export const TICKET_TRANSLATIONS: Record<LanguageCode, TicketTranslations> = {
     audioTurnNotice: "শব্দ চালু",
     audioMute: "নিঃশব্দ",
     audioTest: "পরীক্ষা",
+    emergencySosBtn: "🚨 জরুরি অবস্থা / তীব্র সমস্যা (Report Emergency SOS)",
+    cancelPassBtn: "পাস বাতিল করুন (Cancel Pass)",
   },
   ta: {
     twistBannerTitle: "நேரலை வரிசை சீரமைப்பு",
@@ -612,5 +624,7 @@ export const TICKET_TRANSLATIONS: Record<LanguageCode, TicketTranslations> = {
     audioTurnNotice: "ஒலி இயக்கம்",
     audioMute: "அமைதி",
     audioTest: "சோதனை",
+    emergencySosBtn: "🚨 அவசர நிலை / உடல்நலக்குறைவு (Report Emergency SOS)",
+    cancelPassBtn: "பாஸை ரத்து செய் (Cancel Pass)",
   },
 };

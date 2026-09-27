@@ -918,7 +918,7 @@ export default function VisitorMobilePassPage() {
               className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.98] text-white font-mono font-bold text-xs sm:text-sm shadow-lg shadow-red-950/50 transition-all"
             >
               <ShieldAlert className="w-4 h-4 animate-pulse" />
-              <span>🚨 आपातकाल / गंभीर तकलीफ (Report Emergency SOS)</span>
+              <span>{tt.emergencySosBtn}</span>
             </button>
           )}
 
@@ -930,7 +930,7 @@ export default function VisitorMobilePassPage() {
             onClick={handleCancelToken}
             isLoading={isCancelling}
           >
-            Cancel My Care Pass
+            {tt.cancelPassBtn}
           </Button>
         </div>
       )}

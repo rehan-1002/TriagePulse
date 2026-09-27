@@ -23,7 +23,6 @@ import {
   Baby,
   Thermometer,
   Stethoscope,
-  ShieldAlert,
   Volume2,
   VolumeX,
   User,
@@ -409,29 +408,6 @@ export default function CheckInPage() {
     }
   };
 
-  // One-Tap Instant Emergency SOS Handler
-  const handleImmediateEmergencySOS = () => {
-    const emergencyCard = PICTORIAL_SYMPTOMS[0]; // Chest pain / emergency
-    handleSelectPictorial(emergencyCard);
-
-    const emergencyQueue = queues.find((q) => q.code === "A") || queues[0];
-    if (emergencyQueue) {
-      setSelectedQueueId(emergencyQueue.id);
-    }
-
-    setChiefComplaint(`IMMEDIATE CODE RED EMERGENCY: ${t.emergencySosHeader}`);
-    setPurpose(t.emergencySosBadge);
-
-    // Audio confirmation
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(t.audioEmergencyAlert);
-        utterance.lang = currentLangOption.speechLocale;
-        window.speechSynthesis.speak(utterance);
-      } catch (e) {}
-    }
-  };
 
   // Handle Token Creation
   const handleCreateToken = async (e?: React.FormEvent) => {
@@ -585,44 +561,6 @@ export default function CheckInPage() {
             <span>
               {intakeMode === "EASY" ? t.staffViewBtn : t.easyViewBtn}
             </span>
-          </button>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          ONE-TAP EMERGENCY SOS HEADER (ALWAYS PROMINENT AT TOP)
-          ========================================================================= */}
-      <div className="relative overflow-hidden rounded-xl border-2 border-red-600 bg-gradient-to-r from-red-950 via-zinc-950 to-red-950 p-4 sm:p-5 shadow-lg shadow-red-950/40">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center flex-shrink-0 animate-pulse">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-red-400">
-                  {t.emergencySosBadge}
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-red-500/20 text-red-300">
-                  CODE RED
-                </span>
-              </div>
-              <h2 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                {t.emergencySosHeader}
-              </h2>
-              <p className="text-xs text-zinc-300">
-                {t.emergencySosSub}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleImmediateEmergencySOS}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-red-600 hover:bg-red-500 active:scale-95 text-white font-mono font-bold text-sm shadow-md shadow-red-900/50 transition-all flex-shrink-0"
-          >
-            <ShieldAlert className="w-4 h-4 animate-bounce" />
-            <span>{t.emergencySosBtn}</span>
           </button>
         </div>
       </div>
