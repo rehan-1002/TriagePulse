@@ -30,6 +30,7 @@ import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { DoctorClinicalCopilot } from "@/components/counter/DoctorClinicalCopilot";
 import { broadcastLocalQueueEvent } from "@/lib/realtime/clientBroadcast";
+import { useHospital } from "@/components/hospital/HospitalProvider";
 
 interface CounterDetail {
   id: string;
@@ -124,6 +125,7 @@ const renderEsiBadge = (level?: string) => {
 };
 
 export default function CounterConsolePage() {
+  const { currentHospital } = useHospital();
   const [counters, setCounters] = useState<CounterDetail[]>([]);
   const [selectedCounterId, setSelectedCounterId] = useState<string>("");
   const [allQueues, setAllQueues] = useState<any[]>([]);
@@ -465,11 +467,16 @@ export default function CounterConsolePage() {
       {/* Top Workstation Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-            Clinical Flow Operations Terminal
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+              Clinical Flow Operations Terminal
+            </span>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-700/60 text-emerald-400">
+              🏥 {currentHospital.shortName}
+            </span>
+          </div>
           <h1 className="text-xl font-mono font-bold tracking-tight text-white mt-0.5 flex items-center gap-2">
-            Clinical Station Cockpit
+            {currentHospital.code} Clinical Station Cockpit
             {isRefreshing && (
               <RefreshCw className="w-3.5 h-3.5 text-zinc-500 animate-spin" />
             )}

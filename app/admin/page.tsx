@@ -22,15 +22,29 @@ import {
   ArrowDown,
   Trash2,
   Filter,
+  Building2,
+  Zap,
+  Sliders,
+  Globe,
+  Shuffle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
+import { useHospital } from "@/components/hospital/HospitalProvider";
 
 export default function AdminCockpitPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "emergency" | "tokens" | "analytics">("overview");
+  const { currentHospital, setHospitalId, hospitals } = useHospital();
+  const [activeTab, setActiveTab] = useState<"overview" | "emergency" | "tokens" | "analytics" | "simulation">("overview");
+  const [simTargetHospitalId, setSimTargetHospitalId] = useState<string>("aiims-delhi");
+  const [simPatientCount, setSimPatientCount] = useState<number>(6);
+  const [simSurgeType, setSimSurgeType] = useState<"opd_rush" | "emergency_mass" | "mixed">("mixed");
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [simLogs, setSimLogs] = useState<string[]>([
+    "Ready: Multi-Hospital Simulation Engine standing by.",
+  ]);
   const [queues, setQueues] = useState<any[]>([]);
   const [counters, setCounters] = useState<any[]>([]);
   const [tokens, setTokens] = useState<any[]>([]);
@@ -202,6 +216,34 @@ export default function AdminCockpitPage() {
     }
   };
 
+  // Multi-Hospital OPD & Surge Simulator Runner
+  const runSimulation = async (action: "surge" | "emergency_resus" | "load_balance") => {
+    setIsSimulating(true);
+    try {
+      const res = await fetch("/api/simulation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          hospitalId: simTargetHospitalId,
+          patientCount: simPatientCount,
+          surgeType: simSurgeType,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Simulation failed");
+
+      const logMsg = `[${new Date().toLocaleTimeString()}] ${data.message}`;
+      setSimLogs((prev) => [logMsg, ...prev.slice(0, 19)]);
+      showNotification(data.message, "success");
+      await fetchAdminData(true);
+    } catch (err: any) {
+      showNotification(err.message || "Simulation error", "error");
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
   const pendingEmergencies = emergencyRequests.filter((e) => e.status === "PENDING");
 
   // Filter tokens for directory
@@ -329,11 +371,105 @@ export default function AdminCockpitPage() {
         >
           <TrendingUp className="w-4 h-4" /> AI Telemetry & KPIs
         </button>
+
+        <button
+          onClick={() => setActiveTab("simulation")}
+          className={`px-4 py-2.5 text-xs font-mono font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
+            activeTab === "simulation"
+              ? "border-emerald-500 text-emerald-400 font-extrabold"
+              : "border-transparent text-emerald-600 dark:text-emerald-400 hover:text-emerald-300"
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-emerald-400" /> Multi-Hospital Simulation
+        </button>
       </div>
 
       {/* TAB 1: SYSTEM OVERVIEW */}
       {activeTab === "overview" && (
         <div className="space-y-8">
+          {/* Regional Multi-Hospital Network Status Deck */}
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-850 pb-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="text-sm font-mono font-bold text-white uppercase tracking-wider">
+                    Regional Healthcare Network Command Matrix
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 font-mono">
+                    Real-time operational capacity and patient flow across public &amp; apex hospitals
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
+                  Active Facility: {currentHospital.shortName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("simulation")}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold transition flex items-center gap-1"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> Launch Simulator
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {hospitals.map((h) => {
+                const isCurrent = h.id === currentHospital.id;
+                return (
+                  <div
+                    key={h.id}
+                    className={`rounded-xl border p-3.5 space-y-2 font-mono transition-all ${
+                      isCurrent
+                        ? "bg-zinc-900 border-emerald-500 shadow-md ring-1 ring-emerald-500/40"
+                        : "bg-zinc-900/40 border-zinc-800 hover:border-zinc-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white truncate">{h.shortName}</span>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                          h.status === "SURGE" || h.status === "CRITICAL"
+                            ? "bg-red-950 text-red-400 border border-red-800"
+                            : "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                        }`}
+                      >
+                        {h.status}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] text-zinc-400 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Est. Wait Time:</span>
+                        <strong className="text-white">~{h.currentWaitMin} mins</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Beds / Counters:</span>
+                        <span>{h.bedCapacity} / {h.totalCounters}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setHospitalId(h.id)}
+                        className={`w-full py-1 rounded text-[11px] font-bold transition ${
+                          isCurrent
+                            ? "bg-emerald-600 text-white cursor-default"
+                            : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                        }`}
+                      >
+                        {isCurrent ? "✓ Active Monitoring" : "Switch Hospital ⇄"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Top KPI Metrics Row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
@@ -865,6 +1001,173 @@ export default function AdminCockpitPage() {
                 Click &quot;Generate Grounded Report&quot; to synthesize multi-source telemetry into an executive brief.
               </div>
             )}
+          </Panel>
+        </div>
+      )}
+
+      {/* TAB 5: MULTI-HOSPITAL OPD & SURGE SIMULATION */}
+      {activeTab === "simulation" && (
+        <div className="space-y-6">
+          <Panel title="Regional Multi-Hospital OPD & Surge Simulator">
+            <div className="space-y-6">
+              <div className="p-4 rounded-xl border border-emerald-900/60 bg-emerald-950/20 text-xs font-mono text-emerald-200">
+                <span className="font-bold block text-sm text-emerald-400 mb-1">
+                  ⚡ Real-Time OPD Traffic &amp; Mass-Casualty Surge Testing Lab
+                </span>
+                Simulate realistic emergency shocks, morning OPD lobby congestion, and inter-hospital load-balancing across regional facilities in real-time.
+              </div>
+
+              {/* 1. Target Hospital Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-bold block">
+                  1. Select Target Hospital Facility:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {hospitals.map((h) => {
+                    const isTarget = simTargetHospitalId === h.id;
+                    return (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => setSimTargetHospitalId(h.id)}
+                        className={`p-3 rounded-xl border text-left font-mono transition-all ${
+                          isTarget
+                            ? "bg-zinc-900 border-emerald-500 shadow-md ring-1 ring-emerald-500/50"
+                            : "bg-zinc-950/80 border-zinc-800 hover:border-zinc-700 text-zinc-400"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white truncate">{h.shortName}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                            {h.code}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-[11px] text-zinc-400 space-y-0.5">
+                          <div>Wait: ~{h.currentWaitMin}m</div>
+                          <div>Beds: {h.bedCapacity}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Simulation Scenario & Patient Count */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-bold block">
+                    2. Arriving Patient Volume:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[3, 6, 10, 15].map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setSimPatientCount(count)}
+                        className={`flex-1 py-2 rounded-lg font-mono text-xs font-bold border transition-colors ${
+                          simPatientCount === count
+                            ? "bg-emerald-600 text-white border-emerald-500"
+                            : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        +{count} Cases
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-bold block">
+                    3. Acuity Scenario Profile:
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSimSurgeType("opd_rush")}
+                      className={`p-2 rounded-lg border text-center font-bold transition-colors ${
+                        simSurgeType === "opd_rush"
+                          ? "bg-amber-600 text-white border-amber-500"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      OPD Rush
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimSurgeType("emergency_mass")}
+                      className={`p-2 rounded-lg border text-center font-bold transition-colors ${
+                        simSurgeType === "emergency_mass"
+                          ? "bg-red-600 text-white border-red-500"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      Trauma / SOS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimSurgeType("mixed")}
+                      className={`p-2 rounded-lg border text-center font-bold transition-colors ${
+                        simSurgeType === "mixed"
+                          ? "bg-emerald-600 text-white border-emerald-500"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      Mixed Flow
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Execute Simulation Actions */}
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() => runSimulation("surge")}
+                  isLoading={isSimulating}
+                  icon={<Zap className="w-4 h-4 text-emerald-400" />}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold"
+                >
+                  ⚡ Trigger {simPatientCount}-Patient Surge
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => runSimulation("emergency_resus")}
+                  isLoading={isSimulating}
+                  icon={<ShieldAlert className="w-4 h-4 text-red-400" />}
+                  className="border-red-800/80 bg-red-950/40 hover:bg-red-900 text-red-200 font-mono text-xs font-bold"
+                >
+                  🚨 Inject Level-1 Resuscitation (Code Red)
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => runSimulation("load_balance")}
+                  isLoading={isSimulating}
+                  icon={<Shuffle className="w-4 h-4 text-cyan-400" />}
+                  className="border-cyan-800/80 bg-cyan-950/40 hover:bg-cyan-900 text-cyan-200 font-mono text-xs font-bold"
+                >
+                  🔀 Execute Regional Inter-Hospital Diversion
+                </Button>
+              </div>
+
+              {/* Live Simulation Console Feed */}
+              <div className="rounded-xl border border-zinc-800 bg-black p-4 space-y-2 font-mono">
+                <div className="flex items-center justify-between text-[11px] text-zinc-500 border-b border-zinc-850 pb-2">
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    LIVE SIMULATION TELEMETRY CONSOLE
+                  </span>
+                  <span>Auto-Sync: WebSocket / Bus</span>
+                </div>
+                <div className="max-h-48 overflow-y-auto space-y-1 text-xs text-zinc-300">
+                  {simLogs.map((log, idx) => (
+                    <div key={idx} className="leading-relaxed">
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </Panel>
         </div>
       )}

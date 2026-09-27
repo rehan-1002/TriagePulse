@@ -14,6 +14,7 @@ import {
 import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { QueueEventPayload } from "@/lib/realtime/events";
+import { useHospital } from "@/components/hospital/HospitalProvider";
 
 interface ServingCall {
   tokenId: string;
@@ -64,6 +65,7 @@ const formatClinicalSpeechAnnouncement = (displayNumber: string, stationName: st
 };
 
 export default function PublicDisplayPage() {
+  const { currentHospital } = useHospital();
   const [currentCall, setCurrentCall] = useState<ServingCall | null>(null);
   const [recentCalls, setRecentCalls] = useState<ServingCall[]>([]);
   const [currentTime, setCurrentTime] = useState<string>("");
@@ -397,11 +399,16 @@ export default function PublicDisplayPage() {
             <Building className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-mono font-extrabold tracking-wider text-white">
-              CLINICAL FLOW DISPLAY
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 border border-emerald-700/60 text-emerald-400">
+                🏥 {currentHospital.name}
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-mono font-extrabold tracking-wider text-white mt-0.5">
+              {currentHospital.code} CLINICAL FLOW DISPLAY
             </h1>
             <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
-              Emergency & Outpatient Care Stream • HIPAA / NDHM Protected
+              {currentHospital.tagline} • Live OPD & Emergency Screen
             </span>
           </div>
         </div>

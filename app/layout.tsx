@@ -4,6 +4,7 @@ import "./globals.css";
 import { Activity, Tv, Monitor, ShieldCheck, UserCheck } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { PwaProvider, InstallPwaNavButton } from "@/components/pwa/PwaProvider";
+import { HospitalProvider, HospitalSelector } from "@/components/hospital/HospitalProvider";
 
 export const viewport: Viewport = {
   themeColor: "#059669",
@@ -59,24 +60,30 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white overflow-x-hidden transition-colors duration-300">
         <PwaProvider>
-        {/* Global Operational Top Bar */}
-        <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 transition-colors duration-300">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group">
-                <div className="w-7 h-7 rounded bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors shrink-0">
-                  <Activity className="w-4 h-4 text-emerald-400" />
+          <HospitalProvider>
+            {/* Global Operational Top Bar */}
+            <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-black/90 backdrop-blur-md px-2 sm:px-4 py-2 sm:py-2.5 transition-colors duration-300">
+              <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                  <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group">
+                    <div className="w-7 h-7 rounded bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors shrink-0">
+                      <Activity className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <span className="font-mono text-xs sm:text-sm font-bold tracking-wider text-zinc-900 dark:text-white">
+                        TRIAGEPULSE
+                      </span>
+                      <span className="text-[10px] font-mono text-zinc-500 ml-1.5 uppercase hidden lg:inline">
+                        Clinical OS
+                      </span>
+                    </div>
+                  </Link>
+
+                  {/* Multi-Hospital Selector Pill */}
+                  <div className="border-l border-zinc-200 dark:border-zinc-800 pl-1.5 sm:pl-2.5">
+                    <HospitalSelector />
+                  </div>
                 </div>
-                <div>
-                  <span className="font-mono text-xs sm:text-sm font-bold tracking-wider text-zinc-900 dark:text-white">
-                    TRIAGEPULSE
-                  </span>
-                  <span className="text-[10px] font-mono text-zinc-500 ml-1.5 uppercase hidden lg:inline">
-                    Clinical OS v2.4
-                  </span>
-                </div>
-              </Link>
-            </div>
 
             {/* Navigation Tabs */}
             <nav className="flex items-center gap-1 sm:gap-1.5 shrink-0">
@@ -137,6 +144,7 @@ export default function RootLayout({
             <span>Live Emergency Re-Forecasting • Zero-Install Web & Basic Phone Ready</span>
           </div>
         </footer>
+          </HospitalProvider>
         </PwaProvider>
       </body>
     </html>

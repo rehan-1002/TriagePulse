@@ -27,6 +27,7 @@ import {
   VolumeX,
   User,
   Settings,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +37,7 @@ import { ConnectionBadge } from "@/components/ui/ConnectionBadge";
 import { QRCodeDisplay } from "@/components/ui/QRCodeDisplay";
 import { useRealtimeQueue } from "@/components/hooks/useRealtimeQueue";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import { useHospital } from "@/components/hospital/HospitalProvider";
 import {
   LanguageCode,
   SUPPORTED_LANGUAGES,
@@ -191,6 +193,7 @@ const PICTORIAL_SYMPTOMS: PictorialCard[] = [
 
 export default function CheckInPage() {
   const router = useRouter();
+  const { currentHospital, setHospitalId } = useHospital();
 
   // Mode: Default is "EASY" (No login, zero barriers for low-literacy patients)
   const [intakeMode, setIntakeMode] = useState<"EASY" | "CLINICAL">("EASY");
@@ -445,9 +448,10 @@ export default function CheckInPage() {
       if (knownConditions.trim()) vitalsPayload.knownConditions = knownConditions.trim();
       if (phoneNumber.trim()) vitalsPayload.phoneNumber = phoneNumber.trim().replace(/\D/g, "").slice(-10);
 
-      const finalPatientName =
+      const baseName =
         visitorName.trim() ||
         (patientRelationship ? `मरीज़ (${patientRelationship})` : "मरीज़ (Patient)");
+      const finalPatientName = `${baseName} [${currentHospital.code}]`;
 
       const res = await fetch("/api/tokens", {
         method: "POST",
@@ -571,6 +575,45 @@ export default function CheckInPage() {
           <span>{error}</span>
         </div>
       )}
+
+      {/* Active Hospital Context Banner & Load Balancer Diversion Alert */}
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs sm:text-sm font-mono font-bold text-zinc-900 dark:text-white">
+                {currentHospital.name}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-mono font-semibold">
+                {currentHospital.code}
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-mono mt-0.5">
+              Est. Current OPD Wait: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">~{currentHospital.currentWaitMin} mins</strong> • {currentHospital.address}
+            </p>
+          </div>
+        </div>
+
+        {/* Smart Diversion Suggestion if AIIMS is under surge */}
+        {currentHospital.id === "aiims-delhi" && (
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-cyan-950/40 border border-cyan-800/60 text-cyan-200 text-xs font-mono shrink-0">
+            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-[11px]">
+              Safdarjung Hospital has <strong>~22 min wait</strong>.
+            </span>
+            <button
+              type="button"
+              onClick={() => setHospitalId("safdarjung")}
+              className="px-2 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] transition-colors"
+            >
+              Switch ⇄
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* =========================================================================
           EASY PICTORIAL & VOICE MODE (DEFAULT FOR ALL ILLITERATE & GENERAL USERS)
