@@ -7,18 +7,17 @@ import { sanitizeText } from "@/lib/security/sanitize";
 import { checkTokenCreationRateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { isTokenForHospital, getHospitalById, DEFAULT_HOSPITAL_ID } from "@/lib/hospitals/data";
-import { saveFallbackToken } from "@/lib/queue/fallbackStore";
+import { saveFallbackToken, listFallbackTokens } from "@/lib/queue/fallbackStore";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const queueId = searchParams.get("queueId");
+  const status = searchParams.get("status");
+  const hospitalCode = searchParams.get("hospitalCode") || searchParams.get("hospitalId") || null;
+
   try {
-    const { searchParams } = new URL(request.url);
-    const queueId = searchParams.get("queueId");
-    const status = searchParams.get("status");
-
-    const hospitalCode = searchParams.get("hospitalCode") || searchParams.get("hospitalId") || null;
-
     let tokens = await prisma.token.findMany({
       where: {
         ...(queueId ? { queueId } : {}),
@@ -43,11 +42,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, tokens });
   } catch (err: any) {
-    console.error("Error fetching tokens:", err);
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch tokens" },
-      { status: 500 }
-    );
+    console.warn("Database unreachable in GET /api/tokens, serving memory fallback:", err.message);
+    const fallbackTokens = listFallbackTokens(hospitalCode);
+    return NextResponse.json({ success: true, tokens: fallbackTokens, offline: true });
   }
 }
 
@@ -120,19 +117,24 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    let targetQueueId = queueId;
-    if (triageResult.triageLevel === "LEVEL_1_RESUSCITATION" || triageResult.triageLevel === "LEVEL_2_EMERGENT") {
-      const edQueue = await prisma.queue.findFirst({
-        where: { code: "ED", status: "ACTIVE" },
-      });
-      if (edQueue) {
-        targetQueueId = edQueue.id;
-      }
-    }
-
     const rawHospital = parsed.data.hospitalCode || parsed.data.hospitalId;
     const resolvedHospital = rawHospital ? getHospitalById(rawHospital) : null;
     const hospitalCode = resolvedHospital?.code || (cleanVisitorName.match(/\[([A-Za-z0-9_-]+)\]/)?.[1]) || parsed.data.hospitalCode || "AIIMS";
+
+    let targetQueueId = queueId;
+    if (triageResult.triageLevel === "LEVEL_1_RESUSCITATION" || triageResult.triageLevel === "LEVEL_2_EMERGENT") {
+      try {
+        const edQueue = await prisma.queue.findFirst({
+          where: { code: "ED", status: "ACTIVE" },
+        });
+        if (edQueue) {
+          targetQueueId = edQueue.id;
+        }
+      } catch (findErr: any) {
+        console.warn("Prisma findFirst ED queue offline:", findErr.message);
+        targetQueueId = `queue-${hospitalCode.toLowerCase()}-ed`;
+      }
+    }
     
     let finalVisitorName = cleanVisitorName;
     if (!finalVisitorName.includes(`[${hospitalCode}]`)) {
