@@ -70,10 +70,11 @@ export default function AdminCockpitPage() {
   const fetchAdminData = useCallback(async (silent = false) => {
     if (!silent) setIsRefreshing(true);
     try {
+      const hospParam = isAllHospitals ? "" : `?hospitalCode=${currentHospital.code}`;
       const [qRes, cRes, tRes, eRes, aRes] = await Promise.allSettled([
-        fetch("/api/queues", { cache: "no-store" }).then((r) => r.json()),
+        fetch(`/api/queues${hospParam}`, { cache: "no-store" }).then((r) => r.json()),
         fetch("/api/counters", { cache: "no-store" }).then((r) => r.json()),
-        fetch("/api/tokens", { cache: "no-store" }).then((r) => r.json()),
+        fetch(`/api/tokens${hospParam}`, { cache: "no-store" }).then((r) => r.json()),
         fetch("/api/emergency", { cache: "no-store" }).then((r) => r.json()),
         fetch("/api/analytics", { cache: "no-store" }).then((r) => r.json()),
       ]);
@@ -89,7 +90,7 @@ export default function AdminCockpitPage() {
       setIsLoading(false);
       if (!silent) setIsRefreshing(false);
     }
-  }, []);
+  }, [currentHospital.code, isAllHospitals]);
 
   useEffect(() => {
     fetchAdminData();
@@ -627,8 +628,12 @@ export default function AdminCockpitPage() {
                       <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 block">
                         Top Waiting Tokens:
                       </span>
-                      {q.waitingTokens && q.waitingTokens.length > 0 ? (
-                        q.waitingTokens.slice(0, 4).map((t: any) => (
+                      {q.waitingTokens &&
+                      q.waitingTokens.filter((t: any) => isAllHospitals || isTokenForHospital(t, currentHospital.code)).length > 0 ? (
+                        q.waitingTokens
+                          .filter((t: any) => isAllHospitals || isTokenForHospital(t, currentHospital.code))
+                          .slice(0, 4)
+                          .map((t: any) => (
                           <div
                             key={t.id}
                             className={`flex items-center justify-between p-2 rounded bg-zinc-900 border text-xs font-mono ${

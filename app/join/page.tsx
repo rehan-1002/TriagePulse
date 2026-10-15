@@ -201,6 +201,109 @@ const getTriageIcon = (id: string) => {
   return Stethoscope;
 };
 
+// Automatic clinical department classifier for voice & typed complaints
+function detectBestQueue(
+  text: string,
+  availableQueues: QueueItem[],
+  hospital?: any
+): QueueItem | undefined {
+  if (!availableQueues || availableQueues.length === 0) return undefined;
+  const lower = (text || "").toLowerCase().trim();
+  if (!lower) return availableQueues.find((q) => q.code === "OPD") || availableQueues[0];
+
+  // 1. Critical / Emergency Level 1 & 2 (Casualty, Trauma, Cardiac, Burns, Hemorrhage)
+  const isEmergency =
+    lower.includes("accident") ||
+    lower.includes("emergency") ||
+    lower.includes("chest") ||
+    lower.includes("heart") ||
+    lower.includes("cardiac") ||
+    lower.includes("stemi") ||
+    lower.includes("attack") ||
+    lower.includes("choke") ||
+    lower.includes("burn") ||
+    lower.includes("fire") ||
+    lower.includes("acid") ||
+    lower.includes("blood") ||
+    lower.includes("bleed") ||
+    lower.includes("fracture") ||
+    lower.includes("bone") ||
+    lower.includes("unconscious") ||
+    lower.includes("faint") ||
+    lower.includes("behosh") ||
+    lower.includes("head injury") ||
+    lower.includes("stroke") ||
+    lower.includes("paralysis") ||
+    lower.includes("seizure") ||
+    lower.includes("poison") ||
+    lower.includes("snake") ||
+    lower.includes("bite") ||
+    lower.includes("trauma") ||
+    lower.includes("critical") ||
+    lower.includes("casualty") ||
+    lower.includes("resuscitation") ||
+    lower.includes("दुर्घटना") ||
+    lower.includes("आपातकाल") ||
+    lower.includes("इमरजेंसी") ||
+    lower.includes("छाती") ||
+    lower.includes("सीने") ||
+    lower.includes("दिल") ||
+    lower.includes("खून") ||
+    lower.includes("रक्त") ||
+    lower.includes("जलना") ||
+    lower.includes("आग") ||
+    lower.includes("हड्डी") ||
+    lower.includes("फ्रैक्चर") ||
+    lower.includes("बेहोश") ||
+    lower.includes("सिर") ||
+    lower.includes("लकवा") ||
+    lower.includes("जहर") ||
+    lower.includes("सांप") ||
+    lower.includes("गंभीर");
+
+  if (isEmergency) {
+    const ed = availableQueues.find((q) => q.code === "ED");
+    if (ed) return ed;
+    const tr = availableQueues.find((q) => q.code === "TR");
+    if (tr) return tr;
+  }
+
+  // 2. Acute Triage / Vitals needed (Breathlessness, Dizziness, High Fever)
+  const isTriage =
+    lower.includes("breath") ||
+    lower.includes("saans") ||
+    lower.includes("सांस") ||
+    lower.includes("asthma") ||
+    lower.includes("dizzy") ||
+    lower.includes("chakkar") ||
+    lower.includes("चक्कर") ||
+    lower.includes("vomit") ||
+    lower.includes("उल्टी");
+
+  if (isTriage) {
+    const tr = availableQueues.find((q) => q.code === "TR");
+    if (tr) return tr;
+  }
+
+  // 3. Match against active hospital's custom triage protocols
+  if (hospital?.triageQuestions && hospital.triageQuestions.length > 0) {
+    for (const card of hospital.triageQuestions) {
+      const cardCorpus = `${card.englishTitle} ${card.hindiTitle} ${card.englishSub} ${card.hindiSub} ${card.defaultComplaint}`.toLowerCase();
+      const words = lower.split(/\s+/).filter((w: string) => w.length >= 3);
+      if (words.some((w: string) => cardCorpus.includes(w))) {
+        const matched = availableQueues.find((q) => q.code === card.preferredQueueCode);
+        if (matched) return matched;
+      }
+    }
+  }
+
+  // 4. Default to OPD clinic, or first available queue
+  const opd = availableQueues.find((q) => q.code === "OPD");
+  if (opd) return opd;
+
+  return availableQueues[0];
+}
+
 export default function CheckInPage() {
   const router = useRouter();
   const { currentHospital, setHospitalId } = useHospital();
@@ -247,12 +350,24 @@ export default function CheckInPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentUrl, setCurrentUrl] = useState<string>("");
 
-  // Voice Input (Web Speech API)
+  // Voice Input (Web Speech API) & Auto-Triage State
   const [isListening, setIsListening] = useState<boolean>(false);
   const [speechSupported, setSpeechSupported] = useState<boolean>(false);
   const [voiceLang, setVoiceLang] = useState<"hi-IN" | "en-IN">("hi-IN");
   const [speechFeedback, setSpeechFeedback] = useState<string>("");
   const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>("");
+  const isSubmittingRef = useRef<boolean>(false);
+  const autoSubmitTimerRef = useRef<any>(null);
+
+  // Clear auto-submit timers on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimerRef.current) {
+        clearTimeout(autoSubmitTimerRef.current);
+      }
+    };
+  }, []);
 
   // AI Triage state (for detailed mode)
   const [aiPrompt, setAiPrompt] = useState<string>("");
@@ -277,13 +392,15 @@ export default function CheckInPage() {
     try {
       const res = await fetch(`/api/queues?hospitalCode=${currentHospital.code}`, { cache: "no-store" });
       const data = await res.json();
-      if (data.success && data.queues) {
+      if (data.success && data.queues && data.queues.length > 0) {
         setQueues(data.queues);
         setSelectedQueueId((prev) => {
           if (prev && data.queues.some((q: any) => q.id === prev)) {
             return prev;
           }
-          return data.queues[0]?.id || "";
+          // Default to OPD or first available queue so selectedQueueId is never blank
+          const defaultQueue = data.queues.find((q: any) => q.code === "OPD") || data.queues[0];
+          return defaultQueue?.id || "";
         });
       }
     } catch (err) {
@@ -367,32 +484,36 @@ export default function CheckInPage() {
 
       recognition.onstart = () => {
         setIsListening(true);
+        transcriptRef.current = "";
         setSpeechFeedback(t.listening);
+        if (autoSubmitTimerRef.current) {
+          clearTimeout(autoSubmitTimerRef.current);
+        }
       };
 
       recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
           .map((result: any) => result[0].transcript)
-          .join(" ");
+          .join(" ")
+          .trim();
 
-        setChiefComplaint(transcript);
-        setPurpose(transcript);
-        setSpeechFeedback(`"${transcript}"`);
+        if (transcript) {
+          transcriptRef.current = transcript;
+          setChiefComplaint(transcript);
+          setPurpose(transcript);
+          setSpeechFeedback(`"${transcript}"`);
 
-        // Check for emergency keywords in speech
-        const lower = transcript.toLowerCase();
-        if (
-          lower.includes("chest") ||
-          lower.includes("छाती") ||
-          lower.includes("सीने") ||
-          lower.includes("सांस") ||
-          lower.includes("breath") ||
-          lower.includes("खून") ||
-          lower.includes("blood") ||
-          lower.includes("emergency")
-        ) {
-          const emergencyQueue = queues.find((q) => q.code === "A");
-          if (emergencyQueue) setSelectedQueueId(emergencyQueue.id);
+          // Match best queue immediately so UI & cards reflect the emergency/specialty
+          const matched = detectBestQueue(transcript, queues, currentHospital);
+          if (matched) {
+            setSelectedQueueId(matched.id);
+            const matchedCard = (currentHospital.triageQuestions || PICTORIAL_SYMPTOMS).find(
+              (c: any) => c.preferredQueueCode === matched.code
+            );
+            if (matchedCard) {
+              setSelectedPictorialId(matchedCard.id);
+            }
+          }
         }
       };
 
@@ -404,6 +525,42 @@ export default function CheckInPage() {
 
       recognition.onend = () => {
         setIsListening(false);
+        const captured = transcriptRef.current.trim();
+        if (captured && captured.length > 1 && !isSubmittingRef.current) {
+          const matchedQueue =
+            detectBestQueue(captured, queues, currentHospital) ||
+            queues.find((q) => q.code === "OPD") ||
+            queues[0];
+
+          if (matchedQueue) {
+            setSelectedQueueId(matchedQueue.id);
+          }
+
+          const isEmergency = matchedQueue?.code === "ED";
+          setSpeechFeedback(
+            isEmergency
+              ? `🚨 "${captured}" • ${currentHospital.shortName} आपातकाल (Emergency) → पर्ची बन रही है...`
+              : `✓ "${captured}" • ${matchedQueue?.name || "OPD"} → पर्ची बन रही है...`
+          );
+
+          // Audio spoken feedback
+          if (typeof window !== "undefined" && "speechSynthesis" in window) {
+            try {
+              window.speechSynthesis.cancel();
+              const voiceMsg = isEmergency
+                ? (currentLang === "hi" ? "आपातकालीन पर्ची बनाई जा रही है।" : "Creating emergency care pass.")
+                : (currentLang === "hi" ? "ओपीडी पर्ची बनाई जा रही है।" : "Creating OPD pass.");
+              const utt = new SpeechSynthesisUtterance(voiceMsg);
+              utt.lang = currentLangOption.speechLocale;
+              window.speechSynthesis.speak(utt);
+            } catch (e) {}
+          }
+
+          // Auto-trigger token generation without requiring manual department approval
+          autoSubmitTimerRef.current = setTimeout(() => {
+            handleCreateToken(undefined, captured, matchedQueue?.id);
+          }, 800);
+        }
       };
 
       recognition.start();
@@ -414,22 +571,46 @@ export default function CheckInPage() {
   };
 
 
-  // Handle Token Creation
-  const handleCreateToken = async (e?: React.FormEvent) => {
+  // Handle Token Creation (Supports auto-trigger and manual button click)
+  const handleCreateToken = async (
+    e?: React.FormEvent,
+    overrideComplaint?: string,
+    overrideQueueId?: string
+  ) => {
     if (e) e.preventDefault();
+    if (isSubmittingRef.current) return;
 
-    if (!selectedQueueId) {
-      setError(t.errorSelectDept);
-      return;
+    if (autoSubmitTimerRef.current) {
+      clearTimeout(autoSubmitTimerRef.current);
     }
 
-    const complaint = (chiefComplaint || purpose).trim();
+    const complaint = (overrideComplaint || chiefComplaint || purpose).trim();
     if (!complaint) {
       setError(t.errorSelectSymptom);
       return;
     }
 
+    // Smart multi-hospital queue resolver: never fail on missing queue selection
+    let finalQueueId = overrideQueueId || selectedQueueId;
+    if (!finalQueueId || !queues.some((q) => q.id === finalQueueId)) {
+      const best = detectBestQueue(complaint, queues, currentHospital);
+      finalQueueId =
+        best?.id ||
+        queues.find((q) => q.code === "OPD")?.id ||
+        queues[0]?.id ||
+        "";
+      if (finalQueueId) {
+        setSelectedQueueId(finalQueueId);
+      }
+    }
+
+    if (!finalQueueId) {
+      setError(t.errorSelectDept);
+      return;
+    }
+
     setIsSubmitting(true);
+    isSubmittingRef.current = true;
     setError(null);
 
     // Audio announce token generation
@@ -460,13 +641,15 @@ export default function CheckInPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          queueId: selectedQueueId,
+          queueId: finalQueueId,
           visitorName: finalPatientName,
           purpose: complaint,
           chiefComplaint: complaint,
           vitalSigns: Object.keys(vitalsPayload).length > 0 ? vitalsPayload : undefined,
           turnstileToken: "bypass-dev-token",
           honeypot,
+          hospitalCode: currentHospital.code,
+          hospitalId: currentHospital.id,
         }),
       });
 
@@ -486,6 +669,7 @@ export default function CheckInPage() {
     } catch (err: any) {
       setError(err.message || "टोकन बनाने में समस्या आई (Failed to join queue)");
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -678,10 +862,7 @@ export default function CheckInPage() {
 
             {/* STEP 2: PICTORIAL SYMPTOM GRID (NO READING REQUIRED) */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-bold uppercase">
-                  {t.step2Badge}
-                </span>
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-bold uppercase">
                     {t.step2Badge}

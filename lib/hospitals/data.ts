@@ -438,24 +438,56 @@ export function getHospitalById(id: string): Hospital {
   return HOSPITALS.find((h) => h.id === id) || HOSPITALS[0];
 }
 
-export function isTokenForHospital(token: any, hospitalCode: string): boolean {
-  if (!hospitalCode) return true;
+export function isTokenForHospital(token: any, hospitalCodeOrId: string): boolean {
+  if (!hospitalCodeOrId || hospitalCodeOrId === "ALL") return true;
+
+  const targetHospital = HOSPITALS.find(
+    (h) =>
+      h.code.toLowerCase() === hospitalCodeOrId.toLowerCase() ||
+      h.id.toLowerCase() === hospitalCodeOrId.toLowerCase() ||
+      h.shortName.toLowerCase().includes(hospitalCodeOrId.toLowerCase())
+  );
+
+  const validCodes = targetHospital
+    ? [targetHospital.code, targetHospital.id, targetHospital.shortName]
+    : [hospitalCodeOrId];
 
   // 1. Check riskFlags if present
-  if (Array.isArray(token?.riskFlags) && token.riskFlags.includes(`HOSPITAL_${hospitalCode}`)) {
-    return true;
+  if (Array.isArray(token?.riskFlags)) {
+    for (const flag of token.riskFlags) {
+      if (typeof flag === "string" && flag.startsWith("HOSPITAL_")) {
+        const flagCode = flag.replace("HOSPITAL_", "");
+        if (validCodes.some((c) => c.toLowerCase() === flagCode.toLowerCase())) {
+          return true;
+        }
+        // Explicitly tagged for another hospital
+        return false;
+      }
+    }
   }
 
-  // 2. Check visitorName / patientName
-  const name = token?.visitorName || token?.patientName || "";
-  if (name.includes(`[${hospitalCode}]`)) {
-    return true;
+  // 2. Check visitorName / patientName / purpose for bracket tag
+  const combinedText = `${token?.visitorName || ""} ${token?.patientName || ""} ${token?.purpose || ""} ${token?.chiefComplaint || ""}`;
+  const bracketMatch = combinedText.match(/\[([A-Za-z0-9_-]+)\]/);
+  if (bracketMatch) {
+    const extractedTag = bracketMatch[1];
+    return validCodes.some((c) => c.toLowerCase() === extractedTag.toLowerCase());
   }
 
-  // 3. Fallback: If token has no hospital tag at all, attribute to default hospital (AIIMS)
-  if (!name.includes("[") && hospitalCode === "AIIMS") {
-    return true;
+  // 3. Check direct hospital name match in combined text
+  if (targetHospital) {
+    if (combinedText.toLowerCase().includes(targetHospital.shortName.toLowerCase())) return true;
+    if (combinedText.toLowerCase().includes(targetHospital.code.toLowerCase())) return true;
+  }
+
+  // 4. Default fallback: untagged tokens only default to AIIMS if no other hospital is mentioned
+  if (targetHospital?.code === "AIIMS") {
+    const mentionsOther = HOSPITALS.some(
+      (h) => h.code !== "AIIMS" && (combinedText.includes(h.code) || combinedText.includes(h.shortName))
+    );
+    return !mentionsOther;
   }
 
   return false;
 }
+

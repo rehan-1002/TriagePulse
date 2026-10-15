@@ -8,6 +8,8 @@ export const CreateTokenSchema = z.object({
   vitalSigns: z.any().optional(),
   turnstileToken: z.string().optional(),
   honeypot: z.string().max(0, "Bot detected").optional(),
+  hospitalCode: z.string().optional(),
+  hospitalId: z.string().optional(),
 });
 
 export const EmergencyRequestSchema = z.object({

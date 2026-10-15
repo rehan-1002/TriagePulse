@@ -6,6 +6,7 @@ import { CreateTokenSchema } from "@/lib/security/validation";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { checkTokenCreationRateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
+import { isTokenForHospital, getHospitalById, DEFAULT_HOSPITAL_ID } from "@/lib/hospitals/data";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,9 @@ export async function GET(request: NextRequest) {
     const queueId = searchParams.get("queueId");
     const status = searchParams.get("status");
 
-    const tokens = await prisma.token.findMany({
+    const hospitalCode = searchParams.get("hospitalCode") || searchParams.get("hospitalId") || null;
+
+    let tokens = await prisma.token.findMany({
       where: {
         ...(queueId ? { queueId } : {}),
         ...(status ? { status } : {}),
@@ -32,6 +35,10 @@ export async function GET(request: NextRequest) {
         { createdAt: "asc" },
       ],
     });
+
+    if (hospitalCode && hospitalCode !== "ALL") {
+      tokens = tokens.filter((t) => isTokenForHospital(t, hospitalCode));
+    }
 
     return NextResponse.json({ success: true, tokens });
   } catch (err: any) {
@@ -122,15 +129,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const rawHospital = parsed.data.hospitalCode || parsed.data.hospitalId;
+    const resolvedHospital = rawHospital ? getHospitalById(rawHospital) : null;
+    const hospitalCode = resolvedHospital?.code || (cleanVisitorName.match(/\[([A-Za-z0-9_-]+)\]/)?.[1]) || parsed.data.hospitalCode || "AIIMS";
+    
+    let finalVisitorName = cleanVisitorName;
+    if (!finalVisitorName.includes(`[${hospitalCode}]`)) {
+      finalVisitorName = `${finalVisitorName} [${hospitalCode}]`;
+    }
+
+    const finalRiskFlags = Array.from(new Set([...(triageResult.riskFlags || []), `HOSPITAL_${hospitalCode}`]));
+
     const token = await createToken({
       queueId: targetQueueId,
       visitorSessionId: sessionId,
-      visitorName: cleanVisitorName,
+      visitorName: finalVisitorName,
       purpose: cleanPurpose,
       chiefComplaint: cleanComplaint,
       vitalSigns: enrichedVitalSigns,
       triageLevel: triageResult.triageLevel,
-      riskFlags: triageResult.riskFlags,
+      riskFlags: finalRiskFlags,
       targetDepartment: triageResult.departmentType,
       currentStage: "TRIAGE_INTAKE",
     });

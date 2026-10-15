@@ -152,7 +152,7 @@ export default function CounterConsolePage() {
     try {
       const [countersRes, queuesRes, emergencyRes] = await Promise.allSettled([
         fetch("/api/counters", { cache: "no-store" }),
-        fetch("/api/queues", { cache: "no-store" }),
+        fetch(`/api/queues?hospitalCode=${currentHospital.code}`, { cache: "no-store" }),
         fetch("/api/emergency", { cache: "no-store" }),
       ]);
 
@@ -185,7 +185,8 @@ export default function CounterConsolePage() {
           const active = emergencyData.requests.filter(
             (r: any) =>
               (r.status === "APPROVED" || r.status === "PENDING") &&
-              r.token?.status === "WAITING"
+              r.token?.status === "WAITING" &&
+              isTokenForHospital(r.token, currentHospital.code)
           );
           setPendingEmergencies(active);
         }
@@ -196,7 +197,11 @@ export default function CounterConsolePage() {
       setIsLoading(false);
       if (!silent) setIsRefreshing(false);
     }
-  }, []);
+  }, [currentHospital.code]);
+
+  useEffect(() => {
+    fetchWorkstationState();
+  }, [fetchWorkstationState]);
 
   // Quick emergency verification from Doctor Cabin
   const handleReviewEmergency = async (requestId: string, action: "APPROVE" | "REJECT") => {
@@ -256,27 +261,30 @@ export default function CounterConsolePage() {
     [counters, selectedCounterId]
   );
 
-  const currentToken = currentCounter?.currentServingToken || null;
+  const rawCurrentToken = currentCounter?.currentServingToken || null;
+  const currentToken =
+    rawCurrentToken && isTokenForHospital(rawCurrentToken, currentHospital.code)
+      ? rawCurrentToken
+      : null;
 
-  // Flatten and compute all waiting tokens across all categories
+  // Flatten and compute all waiting tokens strictly scoped to current hospital
   const allWaitingTokens: WaitingToken[] = useMemo(() => {
     if (!allQueues || allQueues.length === 0) return [];
-    return allQueues.flatMap((q) =>
-      (q.waitingTokens || []).map((t: any) => ({
-        ...t,
-        queueId: q.id,
-        queueCode: q.code,
-        queueName: q.name,
-      }))
-    );
-  }, [allQueues]);
+    return allQueues
+      .flatMap((q) =>
+        (q.waitingTokens || []).map((t: any) => ({
+          ...t,
+          queueId: q.id,
+          queueCode: q.code,
+          queueName: q.name,
+        }))
+      )
+      .filter((t) => isTokenForHospital(t, currentHospital.code));
+  }, [allQueues, currentHospital.code]);
 
   // Dynamically compute waiting tokens for the active filter view, scoped to current hospital
   const waitingTokens: WaitingToken[] = useMemo(() => {
     let list = [...allWaitingTokens];
-
-    // Strictly scope tokens to this specific hospital
-    list = list.filter((t) => isTokenForHospital(t, currentHospital.code));
 
     if (selectedQueueFilter === "ASSIGNED") {
       if (currentCounter?.queueId) {
@@ -294,7 +302,7 @@ export default function CounterConsolePage() {
       if (a.position !== b.position) return a.position - b.position;
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
-  }, [allWaitingTokens, selectedQueueFilter, currentCounter]);
+  }, [allWaitingTokens, selectedQueueFilter, currentCounter, currentHospital.code]);
 
   // Execute Workstation Action
   const handleCounterAction = async (action: string, extraBody: any = {}) => {
