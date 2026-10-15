@@ -7,6 +7,7 @@ import { sanitizeText } from "@/lib/security/sanitize";
 import { checkTokenCreationRateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { isTokenForHospital, getHospitalById, DEFAULT_HOSPITAL_ID } from "@/lib/hospitals/data";
+import { saveFallbackToken } from "@/lib/queue/fallbackStore";
 
 export const dynamic = "force-dynamic";
 
@@ -140,18 +141,59 @@ export async function POST(request: NextRequest) {
 
     const finalRiskFlags = Array.from(new Set([...(triageResult.riskFlags || []), `HOSPITAL_${hospitalCode}`]));
 
-    const token = await createToken({
-      queueId: targetQueueId,
-      visitorSessionId: sessionId,
-      visitorName: finalVisitorName,
-      purpose: cleanPurpose,
-      chiefComplaint: cleanComplaint,
-      vitalSigns: enrichedVitalSigns,
-      triageLevel: triageResult.triageLevel,
-      riskFlags: finalRiskFlags,
-      targetDepartment: triageResult.departmentType,
-      currentStage: "TRIAGE_INTAKE",
-    });
+    let token: any = null;
+    try {
+      token = await createToken({
+        queueId: targetQueueId,
+        visitorSessionId: sessionId,
+        visitorName: finalVisitorName,
+        purpose: cleanPurpose,
+        chiefComplaint: cleanComplaint,
+        vitalSigns: enrichedVitalSigns,
+        triageLevel: triageResult.triageLevel,
+        riskFlags: finalRiskFlags,
+        targetDepartment: triageResult.departmentType,
+        currentStage: "TRIAGE_INTAKE",
+      });
+    } catch (dbErr: any) {
+      console.warn("Database unreachable in createToken, creating resilient clinical fallback token:", dbErr.message);
+      const isEmergency =
+        triageResult.triageLevel === "LEVEL_1_RESUSCITATION" ||
+        triageResult.triageLevel === "LEVEL_2_EMERGENT";
+      const qCode = isEmergency ? "ED" : "OPD";
+      const queueConfig = resolvedHospital?.queueConfigs.find((qc) => qc.code === qCode) || {
+        name: isEmergency ? "Emergency Room & Resuscitation" : "General OPD Clinics",
+        code: qCode,
+        department: isEmergency ? "EMERGENCY_ROOM" : "GENERAL_OPD",
+        estimatedServiceTime: isEmergency ? 8 : 15,
+      };
+
+      token = saveFallbackToken({
+        id: `tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        displayNumber: `${qCode}-${Math.floor(100 + Math.random() * 900)}`,
+        visitorSessionId: sessionId,
+        visitorName: finalVisitorName,
+        purpose: cleanPurpose,
+        chiefComplaint: cleanComplaint,
+        vitalSigns: enrichedVitalSigns,
+        triageLevel: triageResult.triageLevel,
+        currentStage: "TRIAGE_INTAKE",
+        targetDepartment: triageResult.departmentType,
+        status: "WAITING",
+        priority: isEmergency ? "EMERGENCY" : "STANDARD",
+        position: 1,
+        queueId: `queue-${hospitalCode.toLowerCase()}-${qCode.toLowerCase()}`,
+        hospitalCode,
+        createdAt: new Date().toISOString(),
+        queue: {
+          id: `queue-${hospitalCode.toLowerCase()}-${qCode.toLowerCase()}`,
+          name: queueConfig.name,
+          code: qCode,
+          department: queueConfig.department,
+          estimatedServiceTime: queueConfig.estimatedServiceTime,
+        },
+      });
+    }
 
     const response = NextResponse.json(
       {

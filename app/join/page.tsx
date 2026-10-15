@@ -206,12 +206,31 @@ function detectBestQueue(
   text: string,
   availableQueues: QueueItem[],
   hospital?: any
-): QueueItem | undefined {
-  if (!availableQueues || availableQueues.length === 0) return undefined;
-  const lower = (text || "").toLowerCase().trim();
-  if (!lower) return availableQueues.find((q) => q.code === "OPD") || availableQueues[0];
+): QueueItem {
+  const queuesToSearch: QueueItem[] =
+    availableQueues && availableQueues.length > 0
+      ? availableQueues
+      : (hospital?.queueConfigs || [
+          { code: "ED", name: "Emergency Room & Resuscitation", department: "EMERGENCY_ROOM", estimatedServiceTime: 10 },
+          { code: "TR", name: "Triage & Acute Assessment", department: "TRIAGE_DESK", estimatedServiceTime: 3 },
+          { code: "OPD", name: "General Outpatient Clinics", department: "GENERAL_OPD", estimatedServiceTime: 7 },
+        ]).map((qc: any) => ({
+          id: `queue-${(hospital?.code || "AIIMS").toLowerCase()}-${qc.code.toLowerCase()}`,
+          code: qc.code,
+          name: qc.name,
+          department: qc.department,
+          description: qc.description || "",
+          status: "ACTIVE",
+          estimatedServiceTime: qc.estimatedServiceTime || 5,
+          waitingCount: 0,
+          activeCounters: 1,
+          waitingTokens: [],
+        }));
 
-  // 1. Critical / Emergency Level 1 & 2 (Casualty, Trauma, Cardiac, Burns, Hemorrhage)
+  const lower = (text || "").toLowerCase().trim();
+  if (!lower) return queuesToSearch.find((q) => q.code === "OPD") || queuesToSearch[0];
+
+  // 1. Critical / Emergency Level 1 & 2 (Casualty, Trauma, Cardiac, Burns, Hemorrhage, Fracture)
   const isEmergency =
     lower.includes("accident") ||
     lower.includes("emergency") ||
@@ -262,9 +281,9 @@ function detectBestQueue(
     lower.includes("गंभीर");
 
   if (isEmergency) {
-    const ed = availableQueues.find((q) => q.code === "ED");
+    const ed = queuesToSearch.find((q) => q.code === "ED");
     if (ed) return ed;
-    const tr = availableQueues.find((q) => q.code === "TR");
+    const tr = queuesToSearch.find((q) => q.code === "TR");
     if (tr) return tr;
   }
 
@@ -281,7 +300,7 @@ function detectBestQueue(
     lower.includes("उल्टी");
 
   if (isTriage) {
-    const tr = availableQueues.find((q) => q.code === "TR");
+    const tr = queuesToSearch.find((q) => q.code === "TR");
     if (tr) return tr;
   }
 
@@ -291,17 +310,17 @@ function detectBestQueue(
       const cardCorpus = `${card.englishTitle} ${card.hindiTitle} ${card.englishSub} ${card.hindiSub} ${card.defaultComplaint}`.toLowerCase();
       const words = lower.split(/\s+/).filter((w: string) => w.length >= 3);
       if (words.some((w: string) => cardCorpus.includes(w))) {
-        const matched = availableQueues.find((q) => q.code === card.preferredQueueCode);
+        const matched = queuesToSearch.find((q) => q.code === card.preferredQueueCode);
         if (matched) return matched;
       }
     }
   }
 
   // 4. Default to OPD clinic, or first available queue
-  const opd = availableQueues.find((q) => q.code === "OPD");
+  const opd = queuesToSearch.find((q) => q.code === "OPD");
   if (opd) return opd;
 
-  return availableQueues[0];
+  return queuesToSearch[0];
 }
 
 export default function CheckInPage() {
@@ -317,8 +336,24 @@ export default function CheckInPage() {
   const currentLangOption =
     SUPPORTED_LANGUAGES.find((opt) => opt.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
-  const [queues, setQueues] = useState<QueueItem[]>([]);
-  const [selectedQueueId, setSelectedQueueId] = useState<string>("");
+  // Initialize queues and selected queue immediately from active hospital configs
+  const [queues, setQueues] = useState<QueueItem[]>(() =>
+    currentHospital.queueConfigs.map((qc) => ({
+      id: `queue-${currentHospital.code.toLowerCase()}-${qc.code.toLowerCase()}`,
+      name: qc.name,
+      code: qc.code,
+      department: qc.department,
+      description: qc.description,
+      status: "ACTIVE",
+      estimatedServiceTime: qc.estimatedServiceTime,
+      waitingCount: 0,
+      activeCounters: 1,
+      waitingTokens: [],
+    }))
+  );
+  const [selectedQueueId, setSelectedQueueId] = useState<string>(
+    () => `queue-${currentHospital.code.toLowerCase()}-opd`
+  );
   const [selectedPictorialId, setSelectedPictorialId] = useState<string>("");
   const [visitorName, setVisitorName] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
@@ -594,19 +629,8 @@ export default function CheckInPage() {
     let finalQueueId = overrideQueueId || selectedQueueId;
     if (!finalQueueId || !queues.some((q) => q.id === finalQueueId)) {
       const best = detectBestQueue(complaint, queues, currentHospital);
-      finalQueueId =
-        best?.id ||
-        queues.find((q) => q.code === "OPD")?.id ||
-        queues[0]?.id ||
-        "";
-      if (finalQueueId) {
-        setSelectedQueueId(finalQueueId);
-      }
-    }
-
-    if (!finalQueueId) {
-      setError(t.errorSelectDept);
-      return;
+      finalQueueId = best.id;
+      setSelectedQueueId(best.id);
     }
 
     setIsSubmitting(true);

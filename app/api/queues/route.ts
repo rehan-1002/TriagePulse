@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { HOSPITALS, isTokenForHospital } from "@/lib/hospitals/data";
+import { getFallbackQueuesForHospital } from "@/lib/queue/fallbackStore";
 
 export const dynamic = "force-dynamic";
 
@@ -81,13 +82,17 @@ export async function GET(request: NextRequest) {
       success: true,
       hospital: targetHospital?.name || "All Facilities",
       hospitalCode: hospitalCode || "ALL",
-      queues: formatted,
+      queues: formatted.length > 0 ? formatted : getFallbackQueuesForHospital(hospitalCode).queues,
     });
   } catch (err: any) {
-    console.error("Error fetching queues:", err);
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch queues" },
-      { status: 500 }
-    );
+    const sp = new URL(request.url).searchParams;
+    const fallback = getFallbackQueuesForHospital(sp.get("hospitalCode") || sp.get("hospitalId"));
+    return NextResponse.json({
+      success: true,
+      hospital: fallback.hospital,
+      hospitalCode: fallback.hospitalCode,
+      queues: fallback.queues,
+      offlineFallback: true,
+    });
   }
 }

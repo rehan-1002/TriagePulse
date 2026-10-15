@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { cancelToken, getActiveCounterCount, approveEmergencyRequest } from "@/lib/queue/engine";
 import { calculateEstimatedWaitTime } from "@/lib/eta/calculator";
+import { getFallbackToken } from "@/lib/queue/fallbackStore";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +13,23 @@ export async function GET(
   try {
     const { id } = await params;
 
-    let token = await prisma.token.findUnique({
-      where: { id },
-      include: {
-        queue: true,
-        counter: true,
-        emergencyRequest: true,
-      },
-    });
+    let token: any = null;
+    try {
+      token = await prisma.token.findUnique({
+        where: { id },
+        include: {
+          queue: true,
+          counter: true,
+          emergencyRequest: true,
+        },
+      });
+    } catch (e: any) {
+      console.warn("Prisma error in tokens/[id], checking memory store:", e.message);
+    }
+
+    if (!token) {
+      token = getFallbackToken(id);
+    }
 
     if (!token) {
       return NextResponse.json({ success: false, error: "Token not found" }, { status: 404 });
