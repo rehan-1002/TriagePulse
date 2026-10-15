@@ -312,11 +312,12 @@ export default function VisitorMobilePassPage() {
     return () => clearInterval(interval);
   }, [token?.emergencyRequest, fetchTokenState]);
 
-  // 2-second background sync fallback to guarantee ticket stays 100% synchronized without manual refresh
+  // Bandwidth-optimized background sync fallback (pauses when tab is hidden, relies on SSE realtime for zero latency)
   useEffect(() => {
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
       fetchTokenState();
-    }, 2000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [fetchTokenState]);
 

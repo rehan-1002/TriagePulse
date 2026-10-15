@@ -453,11 +453,12 @@ export default function CheckInPage() {
     onReconcile: () => fetchQueues(),
   });
 
-  // 3-second auto-polling fallback
+  // Bandwidth-optimized auto-polling fallback (pauses when tab is hidden, relies on SSE realtime)
   useEffect(() => {
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
       fetchQueues();
-    }, 3000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [fetchQueues]);
 

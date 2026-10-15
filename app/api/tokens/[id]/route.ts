@@ -50,14 +50,16 @@ export async function GET(
           "Auto-promoted to #1: Triage desk unattended for >60s."
         );
         // Refresh token state after promotion
-        token = await prisma.token.findUnique({
-          where: { id },
-          include: {
-            queue: true,
-            counter: true,
-            emergencyRequest: true,
-          },
-        });
+        try {
+          token = await prisma.token.findUnique({
+            where: { id },
+            include: {
+              queue: true,
+              counter: true,
+              emergencyRequest: true,
+            },
+          });
+        } catch (refreshErr) {}
       }
     }
 
@@ -65,17 +67,24 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Token not found" }, { status: 404 });
     }
 
-    // Dynamic ETA recalculation
-    const activeCounters = await getActiveCounterCount(token.queueId);
+    // Dynamic ETA recalculation with offline fallback
+    let activeCounters = 1;
+    try {
+      activeCounters = await getActiveCounterCount(token.queueId);
+    } catch (e) {
+      activeCounters = 1;
+    }
+
+    const estServiceTime = token.queue?.estimatedServiceTime || (token.priority === "EMERGENCY" ? 8 : 12);
     const estimatedWaitMins = calculateEstimatedWaitTime({
-      position: token.position,
-      estimatedServiceTimeMins: token.queue.estimatedServiceTime,
+      position: token.position || 1,
+      estimatedServiceTimeMins: estServiceTime,
       activeCounterCount: activeCounters,
       triageLevel: token.triageLevel,
-      isDeteriorating: token.isDeteriorating,
+      isDeteriorating: token.isDeteriorating || false,
     });
 
-    const peopleAhead = Math.max(0, token.position - 1);
+    const peopleAhead = Math.max(0, (token.position || 1) - 1);
 
     return NextResponse.json({
       success: true,

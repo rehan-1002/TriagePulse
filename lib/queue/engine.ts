@@ -126,13 +126,18 @@ export async function reindexQueuePositions(db: any = prisma, queueId: string) {
  * Get active counter count for a queue
  */
 export async function getActiveCounterCount(queueId: string): Promise<number> {
-  const count = await prisma.counter.count({
-    where: {
-      OR: [{ queueId }, { queueId: null }],
-      status: { in: ["AVAILABLE", "BUSY"] },
-    },
-  });
-  return Math.max(1, count);
+  try {
+    const count = await prisma.counter.count({
+      where: {
+        OR: [{ queueId }, { queueId: null }],
+        status: { in: ["AVAILABLE", "BUSY"] },
+      },
+    });
+    return Math.max(1, count);
+  } catch (err: any) {
+    // Database offline fallback
+    return 1;
+  }
 }
 
 /**
