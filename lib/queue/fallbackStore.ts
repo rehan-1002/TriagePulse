@@ -61,6 +61,9 @@ const memoryTokens: Map<string, FallbackToken> =
   (globalFallbackStore.__triagepulse_fallback_tokens = readDiskTokens());
 
 export function getFallbackQueuesForHospital(hospitalCodeOrId?: string | null) {
+  const disk = readDiskTokens();
+  disk.forEach((v, k) => memoryTokens.set(k, v));
+
   const targetHospital = HOSPITALS.find(
     (h) =>
       h.code.toLowerCase() === (hospitalCodeOrId || "AIIMS").toLowerCase() ||
@@ -69,7 +72,10 @@ export function getFallbackQueuesForHospital(hospitalCodeOrId?: string | null) {
 
   const queues = targetHospital.queueConfigs.map((qc, idx) => {
     const queueTokens = Array.from(memoryTokens.values()).filter(
-      (t) => t.queue.code === qc.code && t.hospitalCode === targetHospital.code && t.status === "WAITING"
+      (t) =>
+        (t.queue.code === qc.code || t.queueId.endsWith(`-${qc.code.toLowerCase()}`)) &&
+        (!t.hospitalCode || t.hospitalCode.toLowerCase() === targetHospital.code.toLowerCase()) &&
+        t.status === "WAITING"
     );
 
     return {
@@ -87,6 +93,11 @@ export function getFallbackQueuesForHospital(hospitalCodeOrId?: string | null) {
         displayNumber: t.displayNumber,
         position: t.position,
         priority: t.priority,
+        triageLevel: t.triageLevel,
+        chiefComplaint: t.chiefComplaint,
+        vitalSigns: t.vitalSigns,
+        currentStage: t.currentStage,
+        targetDepartment: t.targetDepartment,
         visitorName: t.visitorName,
         purpose: t.purpose,
         createdAt: t.createdAt,

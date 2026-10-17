@@ -168,9 +168,27 @@ export async function createToken(params: {
     targetDepartment = "GENERAL_OPD",
   } = params;
 
-  const queue = await prisma.queue.findUnique({
+  let queue = await prisma.queue.findUnique({
     where: { id: queueId },
   });
+
+  if (!queue) {
+    const extractedCode = queueId.includes("-")
+      ? queueId.split("-").pop()?.toUpperCase()
+      : queueId.toUpperCase();
+    if (extractedCode) {
+      queue = await prisma.queue.findFirst({
+        where: { code: extractedCode },
+      });
+    }
+  }
+
+  if (!queue) {
+    queue = await prisma.queue.findFirst({
+      where: { status: "ACTIVE" },
+      orderBy: { code: "asc" },
+    });
+  }
 
   if (!queue) {
     throw new Error("Queue not found");
@@ -180,10 +198,12 @@ export async function createToken(params: {
     throw new Error("Queue is currently not accepting new tokens");
   }
 
+  const effectiveQueueId = queue.id;
+
   // Determine sequence number and waiting count
   const [tokenCount, waitingCount] = await Promise.all([
-    prisma.token.count({ where: { queueId } }),
-    prisma.token.count({ where: { queueId, status: "WAITING" } }),
+    prisma.token.count({ where: { queueId: effectiveQueueId } }),
+    prisma.token.count({ where: { queueId: effectiveQueueId, status: "WAITING" } }),
   ]);
 
   const sequenceNumber = tokenCount + 1;
@@ -195,7 +215,7 @@ export async function createToken(params: {
     data: {
       displayNumber,
       sequenceNumber,
-      queueId,
+      queueId: effectiveQueueId,
       visitorSessionId,
       visitorName: visitorName || "Patient",
       purpose: purpose || chiefComplaint || "Clinical Consultation",
@@ -216,7 +236,7 @@ export async function createToken(params: {
   });
 
   // Re-index queue with acuity weighting
-  await reindexQueuePositions(prisma, queueId);
+  await reindexQueuePositions(prisma, effectiveQueueId);
 
   const finalToken = (await prisma.token.findUnique({
     where: { id: token.id },

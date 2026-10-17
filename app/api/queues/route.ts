@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { HOSPITALS, isTokenForHospital } from "@/lib/hospitals/data";
-import { getFallbackQueuesForHospital } from "@/lib/queue/fallbackStore";
+import { getFallbackQueuesForHospital, listFallbackTokens } from "@/lib/queue/fallbackStore";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +42,16 @@ export async function GET(request: NextRequest) {
         ? q.tokens.filter((t) => isTokenForHospital(t, hospitalCode))
         : q.tokens;
 
+      // Also merge any offline fallback tokens waiting in this queue/hospital
+      const fallbackTokens = listFallbackTokens(hospitalCode).filter(
+        (t) => (t.queue?.code === q.code || t.queueId === q.id) && t.status === "WAITING"
+      );
+
+      const allTokens = [
+        ...hospitalTokens,
+        ...fallbackTokens.filter((ft) => !hospitalTokens.some((ht) => ht.id === ft.id)),
+      ];
+
       // Find customized name & description for this hospital if available
       const customConfig = targetHospital?.queueConfigs.find((qc) => qc.code === q.code);
 
@@ -53,13 +63,21 @@ export async function GET(request: NextRequest) {
         description: customConfig ? customConfig.description : q.description,
         status: q.status,
         estimatedServiceTime: customConfig ? customConfig.estimatedServiceTime : q.estimatedServiceTime,
-        waitingCount: hospitalTokens.length,
+        waitingCount: allTokens.length,
         activeCounters: q.counters.filter((c) => c.status !== "PAUSED" && c.status !== "CLOSED").length,
-        waitingTokens: hospitalTokens.map((t) => ({
+        waitingTokens: allTokens.map((t: any) => ({
           id: t.id,
           displayNumber: t.displayNumber,
           position: t.position,
           priority: t.priority,
+          triageLevel: t.triageLevel,
+          chiefComplaint: t.chiefComplaint,
+          vitalSigns: t.vitalSigns,
+          riskFlags: t.riskFlags,
+          isDeteriorating: t.isDeteriorating,
+          starvationAlert: t.starvationAlert,
+          currentStage: t.currentStage,
+          targetDepartment: t.targetDepartment,
           visitorName: t.visitorName,
           purpose: t.purpose,
           createdAt: t.createdAt,
