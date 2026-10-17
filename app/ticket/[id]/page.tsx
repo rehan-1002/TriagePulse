@@ -85,10 +85,54 @@ export default function VisitorMobilePassPage() {
   const router = useRouter();
   const tokenId = params.id as string;
 
-  const [token, setToken] = useState<TokenDetail | null>(null);
-  const [estimatedWaitMins, setEstimatedWaitMins] = useState<number>(0);
-  const [peopleAhead, setPeopleAhead] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [token, setToken] = useState<TokenDetail | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`triagepulse_token_${tokenId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.token) return parsed.token;
+        }
+      } catch (_) {}
+    }
+    return null;
+  });
+  const [estimatedWaitMins, setEstimatedWaitMins] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`triagepulse_token_${tokenId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.estimatedWaitMins !== undefined) return parsed.estimatedWaitMins;
+        }
+      } catch (_) {}
+    }
+    return 0;
+  });
+  const [peopleAhead, setPeopleAhead] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`triagepulse_token_${tokenId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.peopleAhead !== undefined) return parsed.peopleAhead;
+        }
+      } catch (_) {}
+    }
+    return 0;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`triagepulse_token_${tokenId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.token) return false;
+        }
+      } catch (_) {}
+    }
+    return true;
+  });
   const [error, setError] = useState<string | null>(null);
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState<boolean>(false);
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
@@ -265,7 +309,12 @@ export default function VisitorMobilePassPage() {
           }
         } catch (_) {}
       }
-      setError(err.message || "Unable to synchronize queue state");
+      setToken((prev) => {
+        if (!prev) {
+          setError(err.message || "Unable to synchronize queue state");
+        }
+        return prev;
+      });
     } finally {
       setIsLoading(false);
     }

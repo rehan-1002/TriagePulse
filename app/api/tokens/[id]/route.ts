@@ -14,17 +14,24 @@ export async function GET(
     const { id } = await params;
 
     let token: any = null;
-    try {
-      token = await prisma.token.findUnique({
-        where: { id },
-        include: {
-          queue: true,
-          counter: true,
-          emergencyRequest: true,
-        },
-      });
-    } catch (e: any) {
-      console.warn("Prisma error in tokens/[id], checking memory store:", e.message);
+    // Fast path: if token was created in fallback offline mode, retrieve instantly
+    if (id.startsWith("tok_")) {
+      token = getFallbackToken(id);
+    }
+
+    if (!token) {
+      try {
+        token = await prisma.token.findUnique({
+          where: { id },
+          include: {
+            queue: true,
+            counter: true,
+            emergencyRequest: true,
+          },
+        });
+      } catch (e: any) {
+        console.warn("Prisma error in tokens/[id], checking fallback store:", e.message);
+      }
     }
 
     if (!token) {
@@ -108,14 +115,19 @@ export async function DELETE(
   try {
     const { id } = await params;
     let cancelled: any = null;
-    try {
-      cancelled = await cancelToken(id);
-    } catch (dbErr: any) {
-      console.warn("Prisma cancelToken failed, checking fallback store:", dbErr.message);
+    if (id.startsWith("tok_")) {
       cancelled = cancelFallbackToken(id);
-      if (!cancelled) {
-        throw new Error("Token not found");
+    } else {
+      try {
+        cancelled = await cancelToken(id);
+      } catch (dbErr: any) {
+        console.warn("Prisma cancelToken failed, checking fallback store:", dbErr.message);
+        cancelled = cancelFallbackToken(id);
       }
+    }
+
+    if (!cancelled) {
+      throw new Error("Token not found");
     }
 
     return NextResponse.json({

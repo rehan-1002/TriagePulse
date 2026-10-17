@@ -689,6 +689,20 @@ export default function CheckInPage() {
         throw new Error(data?.error || "Failed to create token. Please try again.");
       }
 
+      // Immediately cache token in localStorage so ticket pass is available with 0ms latency
+      if (typeof window !== "undefined" && data?.token) {
+        try {
+          localStorage.setItem(
+            `triagepulse_token_${data.token.id}`,
+            JSON.stringify({
+              token: data.token,
+              estimatedWaitMins: data.token.estimatedWaitMins || (data.token.priority === "EMERGENCY" ? 5 : 15),
+              peopleAhead: 0,
+            })
+          );
+        } catch (_) {}
+      }
+
       // Navigate to Patient Care Pass
       router.push(`/ticket/${data.token.id}`);
     } catch (err: any) {
