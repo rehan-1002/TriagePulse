@@ -234,7 +234,37 @@ export default function VisitorMobilePassPage() {
       setEstimatedWaitMins(newWait);
       setPeopleAhead(data.peopleAhead || 0);
       setError(null);
+
+      // Persist to localStorage for offline PWA viewing
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            `triagepulse_token_${tokenId}`,
+            JSON.stringify({
+              token: data.token,
+              estimatedWaitMins: newWait,
+              peopleAhead: data.peopleAhead || 0,
+            })
+          );
+        } catch (_) {}
+      }
     } catch (err: any) {
+      // Check offline PWA cache in localStorage first
+      if (typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(`triagepulse_token_${tokenId}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.token) {
+              setToken(parsed.token);
+              setEstimatedWaitMins(parsed.estimatedWaitMins || 0);
+              setPeopleAhead(parsed.peopleAhead || 0);
+              setError(null);
+              return;
+            }
+          }
+        } catch (_) {}
+      }
       setError(err.message || "Unable to synchronize queue state");
     } finally {
       setIsLoading(false);
@@ -367,6 +397,18 @@ export default function VisitorMobilePassPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to cancel token");
+      }
+      if (typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(`triagepulse_token_${tokenId}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.token) {
+              parsed.token.status = "CANCELLED";
+              localStorage.setItem(`triagepulse_token_${tokenId}`, JSON.stringify(parsed));
+            }
+          }
+        } catch (_) {}
       }
       await fetchTokenState();
     } catch (err: any) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { cancelToken, getActiveCounterCount, approveEmergencyRequest } from "@/lib/queue/engine";
 import { calculateEstimatedWaitTime } from "@/lib/eta/calculator";
-import { getFallbackToken } from "@/lib/queue/fallbackStore";
+import { getFallbackToken, cancelFallbackToken } from "@/lib/queue/fallbackStore";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +107,16 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const cancelled = await cancelToken(id);
+    let cancelled: any = null;
+    try {
+      cancelled = await cancelToken(id);
+    } catch (dbErr: any) {
+      console.warn("Prisma cancelToken failed, checking fallback store:", dbErr.message);
+      cancelled = cancelFallbackToken(id);
+      if (!cancelled) {
+        throw new Error("Token not found");
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -28,7 +28,13 @@ export interface FallbackToken {
   emergencyRequest?: any;
 }
 
-const memoryTokens = new Map<string, FallbackToken>();
+const globalFallbackStore = globalThis as unknown as {
+  __triagepulse_fallback_tokens?: Map<string, FallbackToken>;
+};
+
+const memoryTokens: Map<string, FallbackToken> =
+  globalFallbackStore.__triagepulse_fallback_tokens ||
+  (globalFallbackStore.__triagepulse_fallback_tokens = new Map<string, FallbackToken>());
 
 export function getFallbackQueuesForHospital(hospitalCodeOrId?: string | null) {
   const targetHospital = HOSPITALS.find(
@@ -84,4 +90,12 @@ export function listFallbackTokens(hospitalCode?: string | null): FallbackToken[
   const tokens = Array.from(memoryTokens.values());
   if (!hospitalCode || hospitalCode === "ALL") return tokens;
   return tokens.filter((t) => t.hospitalCode.toLowerCase() === hospitalCode.toLowerCase());
+}
+
+export function cancelFallbackToken(id: string): FallbackToken | null {
+  const token = memoryTokens.get(id);
+  if (!token) return null;
+  token.status = "CANCELLED";
+  memoryTokens.set(id, token);
+  return token;
 }

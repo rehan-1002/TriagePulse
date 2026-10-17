@@ -1,5 +1,5 @@
-// TriagePulse Production Service Worker v1.0.0
-const CACHE_NAME = 'triagepulse-cache-v1';
+// TriagePulse Production Service Worker v2.0.0
+const CACHE_NAME = 'triagepulse-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/join',
@@ -48,9 +48,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests and WebSocket / SSE streams
+  // Skip non-GET, non-HTTP, and dev HMR requests
   if (request.method !== 'GET') return;
+  if (!url.protocol.startsWith('http')) return;
   if (url.pathname.startsWith('/api/realtime')) return;
+  if (url.pathname.startsWith('/_next/webpack-hmr')) return;
 
   // 1. Static Assets (Icons, fonts, images, scripts, styles): Cache-First with Network Fallback
   if (
@@ -67,7 +69,7 @@ self.addEventListener('fetch', (event) => {
           .then((networkRes) => {
             if (networkRes && networkRes.status === 200) {
               const clone = networkRes.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
             }
             return networkRes;
           })
@@ -84,7 +86,7 @@ self.addEventListener('fetch', (event) => {
         // Cache successful HTML and API pages for offline hospital resilience
         if (networkRes && networkRes.status === 200) {
           const clone = networkRes.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
         }
         return networkRes;
       })
